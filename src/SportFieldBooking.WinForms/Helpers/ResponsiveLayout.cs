@@ -1,3 +1,4 @@
+#nullable enable
 using System.Drawing.Drawing2D;
 
 namespace SportFieldBooking.WinForms.Helpers;
@@ -35,6 +36,10 @@ public static class ResponsiveLayout
         form.ForeColor = GiaoDien.Chu;
         form.Font = GiaoDien.ChuThuong;
 
+        // Chạy TRƯỚC mọi xử lý chuyên biệt: dồn lại các hàng công cụ cho hết
+        // chồng chéo/cắt cạnh, rồi các hàm bên dưới mới đo kích thước thật.
+        TuDongDanTrang(form);
+
         // Chỉ một Form chính mới cần bố cục sidebar/header đặc biệt.
         if (MainForms.Contains(form.Name))
         {
@@ -53,7 +58,7 @@ public static class ResponsiveLayout
 
         // Các Form nội dung luôn có vùng cuộn. Điều này là lớp bảo vệ cuối cùng
         // cho máy có độ phân giải thấp hoặc Windows scale 125/150/175%.
-        if (Tim(form, "pnlNoiDung") is Panel content)
+        if (ConTrucTiep(form, "pnlNoiDung") is Panel content)
         {
             content.AutoScroll = true;
             content.HorizontalScroll.Enabled = true;
@@ -66,7 +71,7 @@ public static class ResponsiveLayout
         }
 
         // Form đặt sân: 2 cột khi đủ rộng, 1 cột khi hẹp.
-        if (Tim(form, "pnlTrai") is Panel trai && Tim(form, "pnlPhai") is Panel phai &&
+        if (ConTrucTiep(form, "pnlTrai") is Panel trai && ConTrucTiep(form, "pnlPhai") is Panel phai &&
             form.Name.StartsWith("frmDatSan", StringComparison.Ordinal))
         {
             form.Resize -= BookingResize;
@@ -75,7 +80,7 @@ public static class ResponsiveLayout
         }
 
         // Các màn hình quản lý có danh sách + chi tiết.
-        if (ManagementForms.Contains(form.Name) && Tim(form, "pnlTrai") is Panel list && Tim(form, "pnlPhai") is Panel detail)
+        if (ManagementForms.Contains(form.Name) && ConTrucTiep(form, "pnlTrai") is Panel list && ConTrucTiep(form, "pnlPhai") is Panel detail)
         {
             form.Resize -= ManagementResize;
             form.Resize += ManagementResize;
@@ -91,13 +96,31 @@ public static class ResponsiveLayout
             DashboardResize(form, EventArgs.Empty);
         }
 
+        // Trang chủ khách hàng: 4 thẻ KPI + 2 vùng nội dung.
+        // (Trước đây nhánh này nằm trong ApDungMain nên KHÔNG BAO GIỜ CHẠY:
+        //  frmTrangChuKhachHang là Form con nhúng, không phải màn hình chính
+        //  => 4 thẻ KPI đứng yên ở toạ độ Designer 4x280px = 1168px và chồng lấn
+        //  lên nhau khi vùng nội dung thực tế hẹp hơn.)
+        if (form.Name == "frmTrangChuKhachHang")
+        {
+            form.Resize -= CustomerHomeResize;
+            form.Resize += CustomerHomeResize;
+            CustomerHomeResize(form, EventArgs.Empty);
+        }
+
+        // Khi kích thước form đổi (cửa sổ co giãn, form con được nhúng vào vùng
+        // nội dung hẹp hơn) thì xếp lại mọi hàng công cụ theo bề rộng mới.
+        form.Resize -= FormDoiKichThuoc;
+        form.Resize += FormDoiKichThuoc;
+
         // Các trang danh sách có bộ lọc/footer: tự thu gọn và cho phép cuộn ngang.
-        if (Tim(form, "pnlBoLoc") is Panel filter)
+        if (ConTrucTiep(form, "pnlBoLoc") is Panel filter)
         {
             filter.AutoScroll = true;
             filter.HorizontalScroll.Enabled = true;
+            GanXuLyResize(filter);
         }
-        if (Tim(form, "pnlChan") is Panel footer)
+        if (ConTrucTiep(form, "pnlChan") is Panel footer)
         {
             footer.Resize -= FooterResize;
             footer.Resize += FooterResize;
@@ -116,9 +139,9 @@ public static class ResponsiveLayout
 
     private static void ApDungMain(Form form)
     {
-        var sidebar = Tim(form, "pnlSidebar") as Panel;
-        var header = Tim(form, "pnlTren") as Panel;
-        var content = Tim(form, "pnlNoiDung") as Panel;
+        var sidebar = ConTrucTiep(form, "pnlSidebar") as Panel;
+        var header = ConTrucTiep(form, "pnlTren") as Panel;
+        var content = ConTrucTiep(form, "pnlNoiDung") as Panel;
         if (sidebar == null || header == null || content == null) return;
 
         sidebar.AutoScroll = false;
@@ -128,31 +151,23 @@ public static class ResponsiveLayout
         form.Resize -= MainResize;
         form.Resize += MainResize;
         MainResize(form, EventArgs.Empty);
-
-        // Trang chủ khách hàng có KPI + 2 vùng nội dung đặc biệt.
-        if (form.Name == "frmTrangChuKhachHang")
-        {
-            form.Resize -= CustomerHomeResize;
-            form.Resize += CustomerHomeResize;
-            CustomerHomeResize(form, EventArgs.Empty);
-        }
     }
 
     private static void MainResize(object? sender, EventArgs e)
     {
         if (sender is not Form form) return;
 
-        var sidebar = Tim(form, "pnlSidebar") as Panel;
-        var header = Tim(form, "pnlTren") as Panel;
-        var menu = Tim(form, "pnlMenu") as Panel;
-        var logo = Tim(form, "pnlLogo") as Panel;
-        var footer = Tim(form, "pnlChan") as Panel;
-        var theme = Tim(form, "pnlChuDe") as Panel;
-        var title = Tim(form, "lblTieuDeTrang") as Label;
-        var icon = Tim(form, "picNguoiDung") as Control;
-        var user = Tim(form, "lblTenNguoiDung") as Label;
-        var role = Tim(form, "lblVaiTro") as Label;
-        var content = Tim(form, "pnlNoiDung") as Panel;
+        var sidebar = ConTrucTiep(form, "pnlSidebar") as Panel;
+        var header = ConTrucTiep(form, "pnlTren") as Panel;
+        var menu = ConTrucTiep(form, "pnlMenu") as Panel;
+        var logo = ConTrucTiep(form, "pnlLogo") as Panel;
+        var footer = ConTrucTiep(form, "pnlChan") as Panel;
+        var theme = ConTrucTiep(form, "pnlChuDe") as Panel;
+        var title = ConTrucTiep(form, "lblTieuDeTrang") as Label;
+        var icon = ConTrucTiep(form, "picNguoiDung") as Control;
+        var user = ConTrucTiep(form, "lblTenNguoiDung") as Label;
+        var role = ConTrucTiep(form, "lblVaiTro") as Label;
+        var content = ConTrucTiep(form, "pnlNoiDung") as Panel;
         if (sidebar == null || header == null) return;
 
         int totalWidth = Math.Max(760, form.ClientSize.Width);
@@ -176,8 +191,8 @@ public static class ResponsiveLayout
                 c.Width = Math.Max(150, footer.ClientSize.Width - footer.Padding.Horizontal);
         }
 
-        var logoTitle = Tim(form, "lblTenTrungTam") as Label;
-        var logoSub = Tim(form, "lblTenPhanMem") as Label;
+        var logoTitle = ConTrucTiep(form, "lblTenTrungTam") as Label;
+        var logoSub = ConTrucTiep(form, "lblTenPhanMem") as Label;
         if (logoTitle != null)
         {
             logoTitle.AutoSize = false;
@@ -265,8 +280,8 @@ public static class ResponsiveLayout
     private static void LoginResize(object? sender, EventArgs e)
     {
         if (sender is not Form form) return;
-        var left = Tim(form, "pnlTrai") as Panel;
-        var right = Tim(form, "pnlPhai") as Panel;
+        var left = ConTrucTiep(form, "pnlTrai") as Panel;
+        var right = ConTrucTiep(form, "pnlPhai") as Panel;
         var box = Tim(form, "pnlKhungNhap") as Panel;
         if (left == null || right == null || box == null) return;
 
@@ -321,22 +336,32 @@ public static class ResponsiveLayout
     private static void ContentResize(object? sender, EventArgs e)
     {
         if (sender is not Form form) return;
-        if (Tim(form, "pnlNoiDung") is not Panel content) return;
 
-        // Header nội dung luôn cố định chiều cao; phần thân được cuộn.
-        if (Tim(form, "pnlDau") is Panel head)
+        // LẤY THEO TÊN TRONG CON TRỰC TIẾP: khi form này được nhúng làm form con,
+        // pnlNoiDung của nó đang chứa một Form khác; Tim() đệ quy sẽ nhặt nhầm
+        // panel của form bên trong và phá bố cục của form đó.
+        if (ConTrucTiep(form, "pnlNoiDung") is not Panel content) return;
+
+        // Header nội dung: cho phép cao thêm nếu tiêu đề/mô tả cần chỗ, không ép cứng.
+        if (ConTrucTiep(form, "pnlDau") is Panel head)
         {
             head.Dock = DockStyle.Top;
-            head.Height = Math.Max(72, Math.Min(86, head.Height));
-            var title = Tim(head, "lblTieuDe") as Label;
-            var desc = Tim(head, "lblMoTaTrang") as Label;
+            int canCao = head.Height;
+            foreach (Control c in head.Controls)
+                if (c.Dock == DockStyle.None && c.Visible)
+                    canCao = Math.Max(canCao, c.Top + KichThuocThat(c).Height + head.Padding.Bottom);
+            head.Height = Math.Max(72, Math.Min(canCao, 132));
+
+            var title = ConTrucTiep(head, "lblTieuDe") as Label;
+            var desc = ConTrucTiep(head, "lblMoTaTrang") as Label;
+            int rong = Math.Max(180, head.ClientSize.Width - 100);
             if (title != null)
             {
                 title.AutoSize = false;
                 title.Left = 76;
                 title.Top = 10;
                 title.Height = 34;
-                title.Width = Math.Max(180, head.ClientSize.Width - 96);
+                title.Width = rong;
                 title.AutoEllipsis = true;
             }
             if (desc != null)
@@ -345,7 +370,7 @@ public static class ResponsiveLayout
                 desc.Left = 78;
                 desc.Top = 45;
                 desc.Height = 20;
-                desc.Width = Math.Max(180, head.ClientSize.Width - 100);
+                desc.Width = rong;
                 desc.AutoEllipsis = true;
             }
         }
@@ -359,9 +384,9 @@ public static class ResponsiveLayout
     private static void ManagementResize(object? sender, EventArgs e)
     {
         if (sender is not Form form) return;
-        var content = Tim(form, "pnlNoiDung") as Panel;
-        var list = Tim(form, "pnlTrai") as Panel;
-        var detail = Tim(form, "pnlPhai") as Panel;
+        var content = ConTrucTiep(form, "pnlNoiDung") as Panel;
+        var list = ConTrucTiep(form, "pnlTrai") as Panel;
+        var detail = ConTrucTiep(form, "pnlPhai") as Panel;
         if (content == null || list == null || detail == null) return;
 
         int w = content.ClientSize.Width - content.Padding.Horizontal;
@@ -405,9 +430,9 @@ public static class ResponsiveLayout
     private static void BookingResize(object? sender, EventArgs e)
     {
         if (sender is not Form form) return;
-        var content = Tim(form, "pnlNoiDung") as Panel;
-        var left = Tim(form, "pnlTrai") as Panel;
-        var right = Tim(form, "pnlPhai") as Panel;
+        var content = ConTrucTiep(form, "pnlNoiDung") as Panel;
+        var left = ConTrucTiep(form, "pnlTrai") as Panel;
+        var right = ConTrucTiep(form, "pnlPhai") as Panel;
         if (content == null || left == null || right == null) return;
 
         int w = Math.Max(320, content.ClientSize.Width - content.Padding.Horizontal);
@@ -442,10 +467,10 @@ public static class ResponsiveLayout
     private static void DashboardResize(object? sender, EventArgs e)
     {
         if (sender is not Form form) return;
-        var content = Tim(form, "pnlNoiDung") as Panel;
-        var kpi = Tim(form, "pnlKpi") as Panel;
-        var chart = Tim(form, "pnlBieuDo") as Panel;
-        var bottom = Tim(form, "pnlDuoi") as Panel;
+        var content = ConTrucTiep(form, "pnlNoiDung") as Panel;
+        var kpi = ConTrucTiep(form, "pnlKpi") as Panel;
+        var chart = ConTrucTiep(form, "pnlBieuDo") as Panel;
+        var bottom = ConTrucTiep(form, "pnlDuoi") as Panel;
         if (content == null || kpi == null || chart == null || bottom == null) return;
 
         content.AutoScroll = true;
@@ -476,19 +501,19 @@ public static class ResponsiveLayout
     private static void CustomerHomeResize(object? sender, EventArgs e)
     {
         if (sender is not Form form) return;
-        var content = Tim(form, "pnlNoiDung") as Panel;
-        var kpi = Tim(form, "pnlKpi") as Panel;
-        var bottom = Tim(form, "pnlDuoi") as Panel;
-        var upcoming = Tim(form, "pnlSapToi") as Panel;
-        var vouchers = Tim(form, "pnlVoucher") as Panel;
+        var content = ConTrucTiep(form, "pnlNoiDung") as Panel;
+        var kpi = ConTrucTiep(form, "pnlKpi") as Panel;
+        var bottom = ConTrucTiep(form, "pnlDuoi") as Panel;
+        var upcoming = ConTrucTiep(form, "pnlSapToi") as Panel;
+        var vouchers = ConTrucTiep(form, "pnlVoucher") as Panel;
         if (content == null || kpi == null || bottom == null || upcoming == null || vouchers == null) return;
 
         var cards = new[]
         {
-            Tim(form, "kpiSoLanDat") as Control,
-            Tim(form, "kpiChiTieu") as Control,
-            Tim(form, "kpiVoucher") as Control,
-            Tim(form, "kpiSanYeuThich") as Control
+            ConTrucTiep(kpi, "kpiSoLanDat") as Control,
+            ConTrucTiep(kpi, "kpiChiTieu") as Control,
+            ConTrucTiep(kpi, "kpiVoucher") as Control,
+            ConTrucTiep(kpi, "kpiSanYeuThich") as Control
         };
         if (Array.Exists(cards, c => c == null)) return;
 
@@ -598,6 +623,311 @@ public static class ResponsiveLayout
             }
             footer.AutoScroll = true;
         }
+    }
+
+    // ==================================================================
+    //  ENGINE TỰ ĐỘNG DÀN TRANG (bổ sung bản khắc phục chồng chéo)
+    // ------------------------------------------------------------------
+    //  Vấn đề gốc của bản V5:
+    //   1. GiaoDien.DangNutChinh/Phu/NguyHiem() ép mọi Button về Height=38
+    //      và MinimumSize=96x34. Designer lại vẽ panel chứa theo nút cao 34px
+    //      => nút bị panel CẮT MẤT cạnh dưới, đồng thời nút hẹp (<96px) bị
+    //      nới rộng ra và ĐÈ LÊN nút bên cạnh.
+    //   2. Toạ độ trong Designer được đặt cho form rộng 1200px. Khi form bị
+    //      nhúng vào pnlNoiDung của màn hình chính (chỉ còn 670-1020px), mọi
+    //      control giữ nguyên toạ độ cũ => tràn ra ngoài / chồng lên nhau.
+    //   3. Tim() tìm control ĐỆ QUY nên khi một Form con đã được nhúng vào
+    //      pnlNoiDung, hàm có thể "nhặt nhầm" panel của form con (ví dụ
+    //      ContentResize đổi chiều cao pnlDau của form con) => vỡ bố cục.
+    //
+    //  Cách khắc phục: sau khi mọi style đã áp xong (OnLoad), tự động
+    //   - dồn các control cùng hàng về một đường cơ sở chung (canh giữa hàng),
+    //   - đẩy control nào chồng lên nhau xuống hàng mới,
+    //   - giữ nguyên nhóm control neo phải (Anchor Right),
+    //   - nới chiều cao panel cho vừa nội dung thật,
+    //   - làm ngược từ panel trong cùng ra ngoài nên kích thước lan truyền đúng.
+    // ==================================================================
+
+    /// <summary>Khoảng cách tối thiểu giữa 2 control cạnh nhau khi xếp lại hàng.</summary>
+    private const int KhoangCachToiThieu = 8;
+
+    /// <summary>
+    /// Các panel "chứa công cụ" được đặt tên theo quy ước trong toàn dự án.
+    /// Chỉ những panel này mới được xếp lại hàng tự động - panel nhập liệu
+    /// dạng biểu mẫu (nhãn trên / ô nhập dưới) vẫn giữ nguyên toạ độ Designer.
+    /// </summary>
+    private static readonly HashSet<string> TenHangCongCu = new(StringComparer.Ordinal)
+    {
+        "pnlBoLoc", "pnlChan", "pnlThanhCongCu", "pnlTaoHoaDon", "pnlNut", "pnlHanhDong"
+    };
+
+    /// <summary>Kích thước thật của control sau khi style/MinimumSize có hiệu lực.</summary>
+    private static Size KichThuocThat(Control c)
+    {
+        int w = c.Width, h = c.Height;
+        if (c is Button)
+        {
+            if (c.MinimumSize.Width > w) w = c.MinimumSize.Width;
+            if (c.MinimumSize.Height > h) h = c.MinimumSize.Height;
+        }
+        return new Size(Math.Max(0, w), Math.Max(0, h));
+    }
+
+    /// <summary>Neo phải = control luôn bám mép phải khi form co giãn.</summary>
+    private static bool LaNeoPhai(Control c) => (c.Anchor & AnchorStyles.Right) == AnchorStyles.Right;
+
+    /// <summary>
+    /// Tìm control THEO TÊN trong danh sách con TRỰC TIẾP.
+    /// Khác Tim(): không đệ quy nên không bao giờ nhặt nhầm control của
+    /// Form con đang được nhúng bên trong pnlNoiDung.
+    /// </summary>
+    private static Control? ConTrucTiep(Control cha, string ten) =>
+        cha?.Controls.Find(ten, false).FirstOrDefault();
+
+    /// <summary>
+    /// Xếp lại các control KHÔNG Dock bên trong một panel:
+    /// gom hàng theo toạ độ thiết kế, canh giữa hàng, đẩy control chồng chéo xuống hàng mới,
+    /// nhóm neo phải luôn bám mép phải, không đủ chỗ thì cho cuộn ngang.
+    /// </summary>
+    private static void XepLaiHang(Panel pnl)
+    {
+        if (pnl == null || pnl.IsDisposed) return;
+        if (!_dangXep.Add(pnl)) return;   // đang trong một lượt xếp rồi: bỏ qua để tránh đệ quy
+        try
+        {
+        bool dockNgangTuDo = pnl.Dock is DockStyle.None or DockStyle.Top or DockStyle.Bottom;
+
+        // Đưa panel về đúng kích thước thiết kế trước khi xếp lại, nhờ vậy
+        // form rộng ra thì panel CO LẠI được chứ không phình vĩnh viễn.
+        KhoiPhucKichThuoc(pnl);
+        int chieuCaoGoc = pnl.Height;
+
+        // Thứ tự Controls: index 0 = thêm SAU CÙNG = vẽ trên cùng.
+        // Designer viết Controls.Add theo thứ tự đọc (trái -> phải) nên đảo lại.
+        var items = new List<Control>();
+        foreach (Control c in pnl.Controls)
+        {
+            if (c.Dock != DockStyle.None || !c.Visible) continue;
+            items.Add(c);
+        }
+        items.Reverse();
+        if (items.Count == 0) return;
+
+        // Ghi nhớ toạ độ thiết kế (một lần duy nhất) để những lần resize sau
+        // không bị "trôi" dần vị trí control.
+        foreach (Control c in items)
+            if (c.Tag is not string t || !t.StartsWith(NhanToaDoGoc, StringComparison.Ordinal))
+                c.Tag = NhanToaDoGoc + c.Left + "|" + c.Top;
+
+        var pads = pnl.Padding;
+        int mePhai = pnl.ClientSize.Width - pads.Right;
+
+        // --- 1. Gom hàng theo tâm dọc của toạ độ thiết kế (dung sai 16px) ---
+        var hang = new List<List<Control>>();
+        var goc = new List<int>();
+        foreach (Control c in items.OrderBy(o => DocToaDoGoc(o).Y).ThenBy(o => DocToaDoGoc(o).X))
+        {
+            Size sc = KichThuocThat(c);
+            Point g = DocToaDoGoc(c);
+            int tam = g.Y + sc.Height / 2;
+            int i = 0;
+            for (; i < goc.Count; i++)
+                if (Math.Abs(goc[i] - tam) <= 16) break;
+            if (i == goc.Count) { goc.Add(tam); hang.Add(new List<Control>()); }
+            hang[i].Add(c);
+        }
+        for (int i = 0; i < hang.Count; i++)
+            hang[i] = hang[i].OrderBy(o => DocToaDoGoc(o).X).ToList();
+
+        // --- 2. Xếp từng hàng --------------------------------------------
+        int y = pads.Top;
+        foreach (var nhom in hang)
+        {
+            // Nút bị nới cao/rộng nên đè lên ô nhập cùng dải dọc => tách xuống hàng riêng.
+            var day = new List<List<Control>> { new() };
+            foreach (Control c in nhom)
+            {
+                Rectangle rc = HcnThat(c);
+                bool tach = day[0].Any(k => {
+                    Rectangle rk = HcnThat(k);
+                    return rk.IntersectsWith(rc) &&
+                           Math.Min(rk.Bottom, rc.Bottom) - Math.Max(rk.Top, rc.Top) > 2 &&
+                           Math.Min(rk.Right, rc.Right) - Math.Max(rk.Left, rc.Left) > 2;
+                });
+                if (tach) day.Add(new List<Control> { c });
+                else day[0].Add(c);
+            }
+
+            foreach (var d in day)
+            {
+                if (d.Count == 0) continue;
+                int cao = d.Max(c => KichThuocThat(c).Height);
+
+                var phai = d.Where(LaNeoPhai).OrderByDescending(c => c.Left).ToList();
+                var trai = d.Where(c => !LaNeoPhai(c)).OrderBy(c => c.Left).ToList();
+
+                // Nửa phải: bám mép phải, luôn cách nhau >= KhoangCachToiThieu.
+                int xPhai = mePhai;
+                foreach (Control c in phai)
+                {
+                    Size sc = KichThuocThat(c);
+                    xPhai -= sc.Width;
+                    c.Left = Math.Max(pads.Left, xPhai);
+                    c.Top = y + (cao - sc.Height) / 2;
+                    xPhai -= KhoangCachToiThieu;
+                }
+
+                // Nửa trái: giữ toạ độ thiết kế, chỉ đẩy sang phải khi bị chồng.
+                int gioiHan = phai.Count > 0 ? phai[phai.Count - 1].Left - KhoangCachToiThieu : mePhai;
+                int xTrai = pads.Left;
+                foreach (Control c in trai)
+                {
+                    Size sc = KichThuocThat(c);
+                    int x = Math.Max(DocToaDoGoc(c).X, xTrai);
+                    if (x + sc.Width > gioiHan) x = Math.Max(pads.Left, gioiHan - sc.Width);
+                    c.Left = x;
+                    c.Top = y + (cao - sc.Height) / 2;
+                    xTrai = x + sc.Width + KhoangCachToiThieu;
+                }
+
+                if (xTrai - KhoangCachToiThieu > mePhai) pnl.AutoScroll = true;
+                y += cao + 6;
+            }
+        }
+
+        // --- 3. Nới chiều cao panel cho vừa nội dung thật -----------------
+        int canCao = y + pads.Bottom;
+        if (dockNgangTuDo && canCao > pnl.Height) pnl.Height = canCao;
+        LuuKichThuocGoc(pnl, chieuCaoGoc);
+        }
+        finally { _dangXep.Remove(pnl); }
+    }
+
+    /// <summary>Hình chữ nhật thật (đã tính MinimumSize) theo toạ độ thiết kế.</summary>
+    private static Rectangle HcnThat(Control c)
+    {
+        Size s = KichThuocThat(c);
+        Point g = DocToaDoGoc(c);
+        return new Rectangle(g.X, g.Y, s.Width, s.Height);
+    }
+
+    /// <summary>Đọc toạ độ thiết kế đã lưu trong Tag (chưa bị xếp lại làm thay đổi).</summary>
+    private static Point DocToaDoGoc(Control c)
+    {
+        if (c.Tag is string s && s.StartsWith(NhanToaDoGoc, StringComparison.Ordinal))
+        {
+            var p = s.Substring(NhanToaDoGoc.Length).Split('|');
+            if (p.Length == 2 && int.TryParse(p[0], out int x) && int.TryParse(p[1], out int y))
+                return new Point(x, y);
+        }
+        return c.Location;
+    }
+
+    private const string NhanToaDoGoc = "RESPONSIVE_ORIG|";
+    private const string NhanKichThuocGoc = "RESPONSIVE_SIZE_V6|";
+
+    private static void LuuKichThuocGoc(Control c, int chieuCaoGoc)
+    {
+        // Chỉ dùng Tag khi nó còn trống, tránh giẫm lên dữ liệu của chức năng khác.
+        if (c.Tag != null) return;
+        c.Tag = NhanKichThuocGoc + c.Width + "|" + chieuCaoGoc;
+    }
+
+    /// <summary>Trả control về kích thước thiết kế (để panel co lại được khi form rộng ra).</summary>
+    private static void KhoiPhucKichThuoc(Control c)
+    {
+        if (c.Tag is not string s || !s.StartsWith(NhanKichThuocGoc, StringComparison.Ordinal)) return;
+        var p = s.Substring(NhanKichThuocGoc.Length).Split('|');
+        if (p.Length < 2) return;
+        if (int.TryParse(p[0], out int w) && int.TryParse(p[1], out int h))
+        {
+            if (c.Dock is DockStyle.None or DockStyle.Top or DockStyle.Bottom) c.Height = h;
+            if (c.Dock is DockStyle.None or DockStyle.Left or DockStyle.Right) c.Width = w;
+        }
+    }
+
+    /// <summary>
+    /// Bảo đảm panel chứa đủ nội dung: nới chiều cao khi cần và bật cuộn
+    /// để không control nào bị cắt mất. Bỏ qua panel có con Dock=Fill
+    /// (thanh cuộn sẽ làm panel con co lại gây giật layout).
+    /// </summary>
+    private static void VuaKhopNoiDung(Panel pnl)
+    {
+        if (pnl == null || pnl.IsDisposed) return;
+
+        int thap = 0, phaiNhat = 0;
+        foreach (Control c in pnl.Controls)
+        {
+            if (!c.Visible || c.Dock != DockStyle.None) continue;
+            Size s = KichThuocThat(c);
+            thap = Math.Max(thap, c.Top + s.Height);
+            phaiNhat = Math.Max(phaiNhat, c.Left + s.Width);
+        }
+        if (thap == 0) return;
+
+        bool coConFill = pnl.Controls.Cast<Control>().Any(c => c.Dock == DockStyle.Fill);
+        int canCao = thap + pnl.Padding.Bottom;
+
+        if (pnl.Dock is DockStyle.None or DockStyle.Top or DockStyle.Bottom && canCao > pnl.Height)
+            pnl.Height = canCao;
+
+        if (!coConFill && pnl.Dock != DockStyle.Fill)
+        {
+            if (canCao > pnl.ClientSize.Height) pnl.AutoScroll = true;
+            if (phaiNhat + pnl.Padding.Right > pnl.ClientSize.Width) pnl.AutoScroll = true;
+        }
+    }
+
+    /// <summary>Chạy engine cho toàn bộ panel của một form (trong cùng -> ra ngoài).</summary>
+    private static void TuDongDanTrang(Control root)
+    {
+        if (root == null || root.IsDisposed) return;
+
+        foreach (Control c in root.Controls)
+            if (c is Panel p && TenHangCongCu.Contains(p.Name))
+            {
+                // Gắn hook để panel tự xếp lại mỗi khi bề rộng đổi (form co giãn,
+                // panel cha bị ManagementResize/BookingResize thu hẹp...).
+                GanXuLyResize(p);
+                XepLaiHang(p);
+            }
+
+        // Đệ quy trước rồi mới đo cha: kích thước con đã chốt thì cha mới tính đúng.
+        foreach (Control c in root.Controls) TuDongDanTrang(c);
+
+        foreach (Control c in root.Controls)
+            if (c is Panel p && p.Dock != DockStyle.Fill)
+                VuaKhopNoiDung(p);
+    }
+
+    /// <summary>Gắn lại bộ dàn trang khi panel đổi kích thước (form con nhúng, đổi chủ đề...).</summary>
+    private static void GanXuLyResize(Panel pnl)
+    {
+        pnl.Resize -= PanelResize;
+        pnl.Resize += PanelResize;
+    }
+
+    private static void PanelResize(object? sender, EventArgs e)
+    {
+        if (sender is Panel p) XepLaiHang(p);
+    }
+
+    /// <summary>Các panel đang được xếp lại - chống vòng lặp Resize -> Height -> Resize.</summary>
+    private static readonly HashSet<Panel> _dangXep = new();
+
+    /// <summary>
+    /// Form đổi kích thước => xếp lại các hàng công cụ theo bề rộng mới.
+    /// Chỉ chạy khi bề rộng thật sự thay đổi (tránh dàn trang lại liên tục
+    /// khi người dùng kéo giãn chiều cao cửa sổ).
+    /// </summary>
+    private static void FormDoiKichThuoc(object? sender, EventArgs e)
+    {
+        if (sender is not Form form || form.IsDisposed) return;
+        if (form.Tag is string s && s.StartsWith("RESPONSIVE_W|", StringComparison.Ordinal)
+            && int.TryParse(s.AsSpan(13), out int cu) && cu == form.ClientSize.Width) return;
+
+        form.Tag = "RESPONSIVE_W|" + form.ClientSize.Width;
+        TuDongDanTrang(form);
     }
 
     private static Control? Tim(Control root, string name)

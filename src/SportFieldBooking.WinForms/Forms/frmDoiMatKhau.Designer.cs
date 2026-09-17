@@ -164,7 +164,7 @@ partial class frmDoiMatKhau
 
         // btnXacNhan
         GiaoDien.DangNutChinh(btnXacNhan);
-        btnXacNhan.Location = new System.Drawing.Point(160, 218);
+        btnXacNhan.Location = new System.Drawing.Point(160, 262);
         btnXacNhan.Name = "btnXacNhan";
         btnXacNhan.Size = new System.Drawing.Size(130, 38);
         btnXacNhan.TabIndex = 4;
@@ -174,7 +174,7 @@ partial class frmDoiMatKhau
 
         // btnHuy
         GiaoDien.DangNutPhu(btnHuy);
-        btnHuy.Location = new System.Drawing.Point(300, 218);
+        btnHuy.Location = new System.Drawing.Point(300, 262);
         btnHuy.Name = "btnHuy";
         btnHuy.Size = new System.Drawing.Size(124, 38);
         btnHuy.TabIndex = 5;
@@ -184,7 +184,7 @@ partial class frmDoiMatKhau
 
         // frmDoiMatKhau
         AutoScaleMode = AutoScaleMode.Font;
-        ClientSize = new System.Drawing.Size(460, 360);
+        ClientSize = new System.Drawing.Size(460, 400);
         Controls.Add(pnlThan);
         Controls.Add(pnlDau);
         FormBorderStyle = FormBorderStyle.FixedDialog;
