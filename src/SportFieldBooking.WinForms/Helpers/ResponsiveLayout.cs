@@ -518,6 +518,11 @@ public static class ResponsiveLayout
             bottom.Height = Math.Max(300, bottom.Height);
         }
 
+        // pnlDuoi của màn thống kê có 3 cột (chi tiết theo ngày | top sân | giảm giá).
+        // Cột phải từng neo Anchor=Right nên bị kéo về trái và ĐÈ LÊN cột giữa khi vùng
+        // nội dung hẹp hơn bề rộng thiết kế (1168 -> 1008px).
+        DanCot(bottom);
+
         // Ba khối trên đã được căn đúng bề rộng w, nên TẮT cuộn ngang của vùng
         // chứa. Nếu để cuộn ngang, các panel Dock=Top (pnlDau chứa nút "Làm mới")
         // sẽ bị kéo giãn theo bề rộng cuộn => nút bấm văng ra ngoài màn hình.
@@ -1113,6 +1118,108 @@ public static class ResponsiveLayout
             finally { pnl.ResumeLayout(true); }
         }
         finally { _dangSapThe.Remove(pnl); }
+    }
+
+    /// <summary>
+    /// Dàn lại các CỘT nội dung của một panel theo bề rộng thật: chia theo đúng tỉ lệ
+    /// thiết kế, giữ khe hở tối thiểu 14px, không cho tràn cạnh phải. Có cổng chặn nên
+    /// chỉ can thiệp khi thật sự có chồng lấn / tràn / thừa khoảng trống.
+    /// Hiện được gọi từ DashboardResize cho pnlDuoi của frmThongKeAdmin và
+    /// frmThongKeNhanVien (3 cột: chi tiết theo ngày | top sân | giảm giá nhiều nhất).
+    /// </summary>
+    private static void DanCot(Panel pnl)
+    {
+        if (pnl == null || pnl.IsDisposed || TenHangCongCu.Contains(pnl.Name)) return;
+        if (pnl.AutoScroll) return;                                     // panel chủ đích cho cuộn
+
+        var con = new List<Control>();
+        bool coThe = false;
+        foreach (Control c in pnl.Controls)
+        {
+            if (c.Dock != DockStyle.None || !c.Visible) continue;
+            if (LaThe(c)) coThe = true;                                 // nhóm thẻ: đã có SapThe lo
+            con.Add(c);
+        }
+        if (con.Count < 2 || coThe) return;
+
+        int w = pnl.ClientSize.Width - pnl.Padding.Horizontal;
+        if (w < 160) return;
+
+        // Gom cột theo chồng lấn ngang (>= 50% bề rộng khối nhỏ hơn). An toàn vì các
+        // khối trong pnlDuoi không còn Anchor=Right nên không bao giờ trôi đè lên nhau.
+        var cot = new List<int[]>();                                    // mỗi phần tử: [trái, phải]
+        var nhom = new List<List<Control>>();
+        foreach (Control c in con.OrderBy(c => c.Left))
+        {
+            int trai = c.Left, phai = c.Left + c.Width, vitri = -1;
+            for (int i = 0; i < cot.Count; i++)
+            {
+                int rong = Math.Min(phai - trai, cot[i][1] - cot[i][0]);
+                if (rong > 0 && Math.Min(phai, cot[i][1]) - Math.Max(trai, cot[i][0]) > rong / 2) { vitri = i; break; }
+            }
+            if (vitri < 0)
+            {
+                cot.Add(new[] { trai, phai });
+                nhom.Add(new List<Control> { c });
+            }
+            else
+            {
+                cot[vitri][0] = Math.Min(cot[vitri][0], trai);
+                cot[vitri][1] = Math.Max(cot[vitri][1], phai);
+                nhom[vitri].Add(c);
+            }
+        }
+        if (cot.Count < 2) return;
+
+        var thuTu = Enumerable.Range(0, cot.Count).OrderBy(i => cot[i][0]).ToList();
+
+        // CỔNG CHẶN: chỉ dàn lại khi thật sự có vấn đề - hai cột kề nhau chồng lấn,
+        // cột cuối tràn cạnh phải, hoặc màn hình rộng mà các cột không giãn ra.
+        int phaiNhat = cot[thuTu[^1]][1];
+        bool coVanDe = phaiNhat > w + pnl.Padding.Right || phaiNhat < w - 24;
+        for (int i = 0; i < thuTu.Count - 1 && !coVanDe; i++)
+            if (cot[thuTu[i + 1]][0] < cot[thuTu[i]][1]) coVanDe = true;
+        if (!coVanDe) return;
+
+        // Khe hở thiết kế (âm = đang chồng lấn) -> kẹp về tối thiểu 14px.
+        var khe = new int[thuTu.Count - 1];
+        int tongKhe = 0;
+        for (int i = 0; i < khe.Length; i++)
+        {
+            khe[i] = Math.Max(14, cot[thuTu[i + 1]][0] - cot[thuTu[i]][1]);
+            tongKhe += khe[i];
+        }
+
+        int tongRongCot = 0;
+        foreach (int i in thuTu) tongRongCot += Math.Max(1, cot[i][1] - cot[i][0]);
+        int khaDung = Math.Max(cot.Count * 60, w - tongKhe);
+
+        pnl.SuspendLayout();
+        try
+        {
+            int x = pnl.Padding.Left, daDung = 0;
+            for (int vi = 0; vi < thuTu.Count; vi++)
+            {
+                int i = thuTu[vi];
+                int rongCu = Math.Max(1, cot[i][1] - cot[i][0]);
+                int rongMoi = vi == thuTu.Count - 1 ? khaDung - daDung : (int)Math.Round((double)khaDung * rongCu / tongRongCot);
+                rongMoi = Math.Min(Math.Max(60, rongMoi), Math.Max(60, w - x));       // không tràn cạnh phải
+
+                foreach (Control c in nhom[i])
+                {
+                    // Bỏ neo phải: vị trí do engine điều khiển, không để WinForms kéo thêm.
+                    c.Anchor = (c.Anchor & (AnchorStyles.Top | AnchorStyles.Bottom)) | AnchorStyles.Left;
+                    int lech = c.Left - cot[i][0];
+                    int rongCon = (int)Math.Round((double)c.Width * rongMoi / rongCu);
+                    c.Left = x + (int)Math.Round((double)lech * rongMoi / rongCu);
+                    c.Width = Math.Max(60, Math.Min(rongCon, pnl.ClientSize.Width - pnl.Padding.Right - c.Left));
+                }
+
+                x += rongMoi + (vi < khe.Length ? khe[vi] : 0);
+                daDung += rongMoi;
+            }
+        }
+        finally { pnl.ResumeLayout(true); }
     }
 
     private static void TrangTriNen(Control control)

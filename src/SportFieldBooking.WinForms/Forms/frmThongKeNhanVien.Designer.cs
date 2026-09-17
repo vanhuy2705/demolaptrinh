@@ -343,7 +343,7 @@ partial class frmThongKeNhanVien
         dgvTopSan.TabIndex = 2;
 
         lblTieuDeGiamGia.AutoSize = true;
-        lblTieuDeGiamGia.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        lblTieuDeGiamGia.Anchor = AnchorStyles.Top | AnchorStyles.Left;
         lblTieuDeGiamGia.Font = GiaoDien.ChuLon;
         lblTieuDeGiamGia.ForeColor = GiaoDien.Chu;
         lblTieuDeGiamGia.Location = new System.Drawing.Point(880, 0);
@@ -352,7 +352,7 @@ partial class frmThongKeNhanVien
         lblTieuDeGiamGia.TabIndex = 3;
         lblTieuDeGiamGia.Text = "Cơ cấu giảm giá";
 
-        dgvGiamGia.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right;
+        dgvGiamGia.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
         dgvGiamGia.Location = new System.Drawing.Point(880, 28);
         dgvGiamGia.Name = "dgvGiamGia";
         dgvGiamGia.Size = new System.Drawing.Size(288, 134);
