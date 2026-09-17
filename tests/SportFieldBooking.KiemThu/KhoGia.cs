@@ -214,3 +214,49 @@ public class KhoHoaDonGia : IHoaDonRepository
     public decimal TongDoanhThu(DateTime tuNgay, DateTime denNgay) =>
         LayTheoKhoang(tuNgay, denNgay).Sum(h => h.TongTien);
 }
+
+/// <summary>Nhân viên trong bộ nhớ - đủ để kiểm thử đổi trạng thái + đồng bộ tài khoản.</summary>
+public class KhoNhanVienGia : INhanVienRepository
+{
+    public List<NhanVien> DuLieu { get; } = new();
+
+    public List<NhanVien> LayTatCa(string tuKhoa = "") => DuLieu;
+    public NhanVien LayTheoMa(int maNV) => DuLieu.FirstOrDefault(n => n.MaNV == maNV);
+    public NhanVien LayTheoMaTK(int maTK) => DuLieu.FirstOrDefault(n => n.MaTK == maTK);
+    public bool TonTaiSDT(string sdt, int? maNVLoaiTru = null) =>
+        DuLieu.Any(n => n.SDT == sdt && (maNVLoaiTru == null || n.MaNV != maNVLoaiTru));
+    public int Them(NhanVien nhanVien) { nhanVien.MaNV = DuLieu.Count + 1; DuLieu.Add(nhanVien); return nhanVien.MaNV; }
+    public int CapNhat(NhanVien nhanVien) => 1;
+    public int DoiTrangThai(int maNV, string trangThai)
+    {
+        NhanVien n = LayTheoMa(maNV);
+        if (n != null) n.TrangThai = trangThai;
+        return 1;
+    }
+    public int Xoa(int maNV) => DuLieu.RemoveAll(n => n.MaNV == maNV);
+}
+
+/// <summary>Tài khoản trong bộ nhớ - đủ để kiểm thử đồng bộ khóa/mở khi đổi trạng thái nhân viên.</summary>
+public class KhoTaiKhoanGia : ITaiKhoanRepository
+{
+    public List<TaiKhoan> DuLieu { get; } = new();
+
+    public TaiKhoan LayTheoMa(int maTK) => DuLieu.FirstOrDefault(t => t.MaTK == maTK);
+    public TaiKhoan LayTheoTenDangNhap(string tenDangNhap) =>
+        DuLieu.FirstOrDefault(t => t.TenDangNhap == tenDangNhap);
+    public List<TaiKhoan> LayTatCa(string tuKhoa = "") => DuLieu;
+    public List<TaiKhoan> LayTheoVaiTro(string vaiTro) => DuLieu.Where(t => t.VaiTro == vaiTro).ToList();
+    public bool TonTaiTenDangNhap(string tenDangNhap, int? maTKLoaiTru = null) =>
+        DuLieu.Any(t => t.TenDangNhap == tenDangNhap && (maTKLoaiTru == null || t.MaTK != maTKLoaiTru));
+    public int Them(TaiKhoan taiKhoan) { taiKhoan.MaTK = DuLieu.Count + 1; DuLieu.Add(taiKhoan); return taiKhoan.MaTK; }
+    public int CapNhat(TaiKhoan taiKhoan) => 1;
+    public int DoiMatKhau(int maTK, string matKhauDaBam) => 1;
+    public int DoiTrangThai(int maTK, string trangThai)
+    {
+        TaiKhoan t = LayTheoMa(maTK);
+        if (t != null) t.TrangThai = trangThai;
+        return 1;
+    }
+    public int Xoa(int maTK) => DuLieu.RemoveAll(t => t.MaTK == maTK);
+    public int DemTheoVaiTro(string vaiTro) => DuLieu.Count(t => t.VaiTro == vaiTro);
+}

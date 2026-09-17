@@ -231,6 +231,64 @@ internal static class Program
             sqlMoi.Replace("FROM DAT_SAN ds", "FROM DAT_SAN ds WITH (UPDLOCK, HOLDLOCK)").Contains("UPDLOCK")
             && sqlCu.Replace("FROM DAT_SAN ds", "FROM DAT_SAN ds WITH (UPDLOCK, HOLDLOCK)").Contains("UPDLOCK"));
 
+        Nhom("K. Vá lỗi đợt rà soát (quyền in HĐ, tự sửa hồ sơ, trạng thái nhân viên)");
+        Kiem("Khách hàng có quyền in hóa đơn của mình (HD_IN)",
+            PhanQuyenService.CoQuyen(VaiTro.KhachHang, MaQuyen.HdIn));
+        Kiem("Khách hàng KHÔNG có quyền quản lý khách hàng (KH_SUA chỉ dành cho NV/Admin)",
+            !PhanQuyenService.CoQuyen(VaiTro.KhachHang, MaQuyen.KhSua));
+        Kiem("Trạng thái nhân viên gồm đúng 2 giá trị HoatDong/DaNghi (khớp CHECK CSDL)",
+            TrangThaiNhanVien.TatCa.Length == 2
+            && TrangThaiNhanVien.TatCa.Contains(TrangThaiNhanVien.HoatDong)
+            && TrangThaiNhanVien.TatCa.Contains(TrangThaiNhanVien.DaNghi));
+        Kiem("Trạng thái 'Đã nghỉ' của NHÂN VIÊN khác 'Bị khóa' của TÀI KHOẢN (chống nhầm lẫn cũ)",
+            TrangThaiNhanVien.DaNghi != TrangThaiTaiKhoan.BiKhoa);
+        Kiem("Tên hiển thị 'Đã nghỉ việc' cho nhân viên đã nghỉ",
+            TrangThaiNhanVien.TenHienThi(TrangThaiNhanVien.DaNghi) == "Đã nghỉ việc");
+
+        // K.6-K.8: khách tự sửa hồ sơ của mình (không cần quyền quản lý, nhưng không được sửa hồ sơ người khác).
+        var khoKhachHang = new KhoKhachHangGia();
+        khoKhachHang.DuLieu.Add(new KhachHang { MaKH = 5, HoTen = "Nguyễn Văn A", SDT = "0901111222" });
+        khoKhachHang.DuLieu.Add(new KhachHang { MaKH = 6, HoTen = "Trần Thị B", SDT = "0903333444" });
+        var khachHangService = new KhachHangService(khoKhachHang);
+        PhienLamViec.DangNhap(new TaiKhoan
+        {
+            MaTK = 7, TenDangNhap = "kh1", HoTen = "Nguyễn Văn A", VaiTro = VaiTro.KhachHang
+        }, maKH: 5);
+        Kiem("Khách được tự sửa hồ sơ của chính mình",
+            khachHangService.CapNhat(new KhachHang { MaKH = 5, HoTen = "Nguyễn Văn A+", SDT = "0901111222" },
+                laTuChinhSua: true).ThanhCong);
+        Kiem("Khách KHÔNG được sửa hồ sơ của khách khác",
+            !khachHangService.CapNhat(new KhachHang { MaKH = 6, HoTen = "Trần Thị B", SDT = "0903333444" },
+                laTuChinhSua: true).ThanhCong);
+        Kiem("Khách KHÔNG sửa được theo đường quản lý (thiếu quyền KH_SUA)",
+            !khachHangService.CapNhat(new KhachHang { MaKH = 5, HoTen = "Nguyễn Văn A", SDT = "0901111222" }).ThanhCong);
+
+        // K.9-K.11: đổi trạng thái nhân viên (từ chối giá trị của tài khoản + đồng bộ khóa/mở).
+        var khoNhanVien = new KhoNhanVienGia();
+        var khoTaiKhoan = new KhoTaiKhoanGia();
+        khoNhanVien.DuLieu.Add(new NhanVien { MaNV = 1, MaTK = 10, HoTen = "Lê Văn C", TrangThai = TrangThaiNhanVien.HoatDong });
+        khoTaiKhoan.DuLieu.Add(new TaiKhoan
+        {
+            MaTK = 10, TenDangNhap = "nv1", HoTen = "Lê Văn C",
+            VaiTro = VaiTro.NhanVien, TrangThai = TrangThaiTaiKhoan.HoatDong
+        });
+        var nhanVienService = new NhanVienService(khoNhanVien, khoTaiKhoan);
+        PhienLamViec.DangNhap(new TaiKhoan
+        {
+            MaTK = 1, TenDangNhap = "admin", HoTen = "Quản trị viên", VaiTro = VaiTro.Admin
+        });
+        Kiem("Từ chối ghi 'BiKhoa' (trạng thái TÀI KHOẢN) vào hồ sơ nhân viên",
+            !nhanVienService.DoiTrangThai(1, TrangThaiTaiKhoan.BiKhoa).ThanhCong
+            && khoNhanVien.LayTheoMa(1).TrangThai == TrangThaiNhanVien.HoatDong);
+        Kiem("Cho nghỉ việc: nhân viên -> DaNghi, tài khoản liên kết -> BiKhoa",
+            nhanVienService.DoiTrangThai(1, TrangThaiNhanVien.DaNghi).ThanhCong
+            && khoNhanVien.LayTheoMa(1).TrangThai == TrangThaiNhanVien.DaNghi
+            && khoTaiKhoan.LayTheoMa(10).TrangThai == TrangThaiTaiKhoan.BiKhoa);
+        Kiem("Đi làm lại: nhân viên -> HoatDong, tài khoản liên kết được mở khóa",
+            nhanVienService.DoiTrangThai(1, TrangThaiNhanVien.HoatDong).ThanhCong
+            && khoNhanVien.LayTheoMa(1).TrangThai == TrangThaiNhanVien.HoatDong
+            && khoTaiKhoan.LayTheoMa(10).TrangThai == TrangThaiTaiKhoan.HoatDong);
+
         // --- Tổng kết ---
         Console.WriteLine();
         Console.WriteLine(new string('─', 66));

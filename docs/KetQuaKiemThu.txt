@@ -1,6 +1,6 @@
 KET QUA KIEM THU QUY TAC NGHIEP VU - Quan ly cho thue san the thao
 Chay: dotnet run --project tests/SportFieldBooking.KiemThu
-Ngay: 16/09/2026 15:57
+Ngay: 17/09/2026
 
 ╔══════════════════════════════════════════════════════════════════╗
 ║   KIỂM THỬ QUY TẮC NGHIỆP VỤ - QUẢN LÝ CHO THUÊ SÂN THỂ THAO     ║
@@ -64,6 +64,43 @@ Ngay: 16/09/2026 15:57
   [ĐẠT] Thứ Bảy là cuối tuần
   [ĐẠT] Thứ Hai không phải cuối tuần
 
+── I. Đặt sân: voucher đi theo booking & chống đặt trùng đồng thời 
+  [ĐẠT] Đặt sân 20:00-21:00 kèm GIAM20 => thành công
+  [ĐẠT] Booking LƯU voucher (trước đây bị mất)
+  [ĐẠT] Booking lưu giá gốc 400.000 đ, giảm giá tính ở hóa đơn
+  [ĐẠT] Bước kiểm tra trùng trước khi ghi có ĐỌC KHOÁ (chống race)
+  [ĐẠT] Đặt chồng 20:30-21:30 cùng sân => bị từ chối
+  [ĐẠT] Không sinh booking mới khi trùng lịch
+  [ĐẠT] Lập hóa đơn KHÔNG cần nhập lại voucher => thành công
+  [ĐẠT] Hóa đơn tự dùng voucher của booking: 400.000 - 20% = 320.000 đ
+  [ĐẠT] Hóa đơn ghi đúng MaVoucher của booking
+  [ĐẠT] Sửa booking (không nhập voucher) => thành công
+  [ĐẠT] Sửa booking vẫn GIỮ voucher cũ, khách không mất ưu đãi
+  [ĐẠT] Đặt sân 22:00-23:00 không voucher => thành công
+  [ĐẠT] Voucher của booking đã hết lượt => vẫn lập được hóa đơn (không chặn thu tiền)
+  [ĐẠT] ...và tính theo giá hiện hành 400.000 đ, không giảm
+
+── J. SQL thích ứng lược đồ (CSDL cũ chưa có cột MaVoucher vẫn chạy) 
+  [ĐẠT] CSDL v3: SELECT có ds.MaVoucher + JOIN VOUCHER + MaVoucherCode
+  [ĐẠT] CSDL cũ: SELECT hoàn toàn không nhắc tới MaVoucher/VOUCHER
+  [ĐẠT] Cả 2 trạng thái: không còn chỗ giữ {…} chưa được thay
+  [ĐẠT] CSDL cũ: danh sách cột vẫn hợp lệ (không thừa dấu phẩy trước FROM)
+  [ĐẠT] CSDL v3: danh sách cột vẫn hợp lệ (không thừa dấu phẩy trước FROM)
+  [ĐẠT] Khoá chống trùng WITH (UPDLOCK, HOLDLOCK) vẫn gắn được ở cả 2 trạng thái
+
+── K. Vá lỗi đợt rà soát (quyền in HĐ, tự sửa hồ sơ, trạng thái nhân viên) 
+  [ĐẠT] Khách hàng có quyền in hóa đơn của mình (HD_IN)
+  [ĐẠT] Khách hàng KHÔNG có quyền quản lý khách hàng (KH_SUA chỉ dành cho NV/Admin)
+  [ĐẠT] Trạng thái nhân viên gồm đúng 2 giá trị HoatDong/DaNghi (khớp CHECK CSDL)
+  [ĐẠT] Trạng thái 'Đã nghỉ' của NHÂN VIÊN khác 'Bị khóa' của TÀI KHOẢN (chống nhầm lẫn cũ)
+  [ĐẠT] Tên hiển thị 'Đã nghỉ việc' cho nhân viên đã nghỉ
+  [ĐẠT] Khách được tự sửa hồ sơ của chính mình
+  [ĐẠT] Khách KHÔNG được sửa hồ sơ của khách khác
+  [ĐẠT] Khách KHÔNG sửa được theo đường quản lý (thiếu quyền KH_SUA)
+  [ĐẠT] Từ chối ghi 'BiKhoa' (trạng thái TÀI KHOẢN) vào hồ sơ nhân viên
+  [ĐẠT] Cho nghỉ việc: nhân viên -> DaNghi, tài khoản liên kết -> BiKhoa
+  [ĐẠT] Đi làm lại: nhân viên -> HoatDong, tài khoản liên kết được mở khóa
+
 ──────────────────────────────────────────────────────────────────
-  KẾT QUẢ: 42 đạt / 0 lỗi / 42 tổng số
+  KẾT QUẢ: 73 đạt / 0 lỗi / 73 tổng số
 ──────────────────────────────────────────────────────────────────

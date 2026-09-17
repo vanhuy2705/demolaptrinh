@@ -231,8 +231,21 @@ public static class Luoi
         int chiSo = luoi.CurrentRow?.Index ?? 0;
         luoi.DataSource = null;
         luoi.DataSource = danhSach;
-        if (luoi.Rows.Count > 0 && luoi.Columns.Count > 0)
-            luoi.CurrentCell = luoi.Rows[Math.Min(chiSo, luoi.Rows.Count - 1)].Cells[0];
+        if (luoi.Rows.Count == 0 || luoi.Columns.Count == 0) return;
+
+        // Đặt ô hiện tại vào cột HIỂN THỊ đầu tiên: gán CurrentCell vào ô thuộc cột
+        // bị ẩn sẽ ném InvalidOperationException ("cannot be set to an invisible cell").
+        DataGridViewColumn cotHienThi = luoi.Columns.Cast<DataGridViewColumn>()
+            .OrderBy(c => c.DisplayIndex).FirstOrDefault(c => c.Visible);
+        if (cotHienThi == null) return;
+        try
+        {
+            luoi.CurrentCell = luoi.Rows[Math.Min(chiSo, luoi.Rows.Count - 1)].Cells[cotHienThi.Index];
+        }
+        catch (InvalidOperationException)
+        {
+            // Lưới đang bị vô hiệu hóa hoặc chưa sẵn sàng: bỏ qua, không chặn hiển thị.
+        }
     }
 
     public static string Tien(decimal soTien) => soTien.ToString("N0", CultureInfo.GetCultureInfo("vi-VN")) + " đ";

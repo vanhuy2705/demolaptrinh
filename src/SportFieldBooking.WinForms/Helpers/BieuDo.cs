@@ -64,12 +64,14 @@ public static class BieuDo
             return;
         }
 
-        double[] viTri = Enumerable.Range(0, nhan.Count).Select(i => (double)i).ToArray();
-        var cot = bieuDo.Plot.Add.Bars(viTri, giaTri.ToArray());
+        // Cắt về độ dài chung: ScottPlot ném ngoại lệ nếu 2 mảng lệch nhau.
+        int soLuong = Math.Min(nhan.Count, giaTri.Count);
+        double[] viTri = Enumerable.Range(0, soLuong).Select(i => (double)i).ToArray();
+        var cot = bieuDo.Plot.Add.Bars(viTri, giaTri.Take(soLuong).ToArray());
         cot.Color = ScottPlot.Color.FromHex((string.IsNullOrWhiteSpace(mauHex) ? MauChinh : mauHex));
         cot.LegendText = tenDay;
 
-        bieuDo.Plot.Axes.Bottom.TickGenerator = new ScottPlot.TickGenerators.NumericManual(viTri, nhan.ToArray());
+        bieuDo.Plot.Axes.Bottom.TickGenerator = new ScottPlot.TickGenerators.NumericManual(viTri, nhan.Take(soLuong).ToArray());
         if (!string.IsNullOrWhiteSpace(tieuDe)) bieuDo.Plot.Title(tieuDe);
         if (!string.IsNullOrWhiteSpace(nhanTrucY)) bieuDo.Plot.Axes.Left.Label.Text = nhanTrucY;
         bieuDo.Plot.ShowLegend();
@@ -92,14 +94,15 @@ public static class BieuDo
             return;
         }
 
-        double[] viTri = Enumerable.Range(0, nhan.Count).Select(i => (double)i).ToArray();
-        var duong = bieuDo.Plot.Add.Scatter(viTri, giaTri.ToArray());
+        int soLuong = Math.Min(nhan.Count, giaTri.Count);
+        double[] viTri = Enumerable.Range(0, soLuong).Select(i => (double)i).ToArray();
+        var duong = bieuDo.Plot.Add.Scatter(viTri, giaTri.Take(soLuong).ToArray());
         duong.LineWidth = 3;
         duong.MarkerSize = 6;
         duong.Color = ScottPlot.Color.FromHex((string.IsNullOrWhiteSpace(mauHex) ? MauChinh : mauHex));
         duong.LegendText = tenDay;
 
-        bieuDo.Plot.Axes.Bottom.TickGenerator = new ScottPlot.TickGenerators.NumericManual(viTri, nhan.ToArray());
+        bieuDo.Plot.Axes.Bottom.TickGenerator = new ScottPlot.TickGenerators.NumericManual(viTri, nhan.Take(soLuong).ToArray());
         if (!string.IsNullOrWhiteSpace(tieuDe)) bieuDo.Plot.Title(tieuDe);
         bieuDo.Plot.ShowLegend();
         ApDungChuDe(bieuDo);
@@ -120,8 +123,9 @@ public static class BieuDo
             return;
         }
 
-        var hinhTron = bieuDo.Plot.Add.Pie(giaTri.ToArray());
-        for (int i = 0; i < hinhTron.Slices.Count && i < nhan.Count; i++)
+        int soLuong = Math.Min(nhan.Count, giaTri.Count);
+        var hinhTron = bieuDo.Plot.Add.Pie(giaTri.Take(soLuong).ToArray());
+        for (int i = 0; i < hinhTron.Slices.Count && i < soLuong; i++)
         {
             hinhTron.Slices[i].Label = nhan[i];
             hinhTron.Slices[i].FillColor = ScottPlot.Color.FromHex(BangMau[i % BangMau.Length]);

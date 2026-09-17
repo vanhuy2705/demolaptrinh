@@ -151,18 +151,44 @@ public class Toast : Form
 
         void Mo()
         {
-            var toast = new Toast(noiDung.Trim(), loai);
-            _dangHien.Add(toast);
-            XepLaiCacToastConLai();
-            toast.Show();
-            toast._timerMo.Start();
-            toast._timerTat.Start();
+            try
+            {
+                var toast = new Toast(noiDung.Trim(), loai);
+                _dangHien.Add(toast);
+                XepLaiCacToastConLai();
+                toast.Show();
+                toast._timerMo.Start();
+                toast._timerTat.Start();
+            }
+            catch
+            {
+                // Toast chỉ là thông báo phụ: không bao giờ được làm hỏng luồng chính.
+            }
         }
 
-        var owner = Form.ActiveForm;
-        if (owner != null && owner.IsHandleCreated && owner.InvokeRequired)
-            owner.BeginInvoke((Action)Mo);
-        else
-            Mo();
+        // Tìm một form UI còn sống để marshal về đúng luồng: ActiveForm có thể null
+        // (không focus) hoặc đã bị hủy khi toast được gọi từ tác vụ nền.
+        Form noiNhan = null;
+        try
+        {
+            noiNhan = Application.OpenForms.Cast<Form>()
+                .FirstOrDefault(f => f != null && !f.IsDisposed && f.IsHandleCreated);
+        }
+        catch
+        {
+            // Không lấy được danh sách form: thử hiện trực tiếp bên dưới.
+        }
+
+        try
+        {
+            if (noiNhan != null && noiNhan.InvokeRequired)
+                noiNhan.BeginInvoke((Action)Mo);
+            else
+                Mo();
+        }
+        catch
+        {
+            // Bỏ qua: toast không được phép ném lỗi ra ngoài.
+        }
     }
 }

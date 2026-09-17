@@ -68,7 +68,7 @@ public class NhanVienService
             {
                 taiKhoan.MaTK = _taiKhoanRepo.Them(taiKhoan);
                 nhanVien.MaTK = taiKhoan.MaTK;
-                nhanVien.TrangThai = TrangThaiTaiKhoan.HoatDong;
+                nhanVien.TrangThai = TrangThaiNhanVien.HoatDong;
                 nhanVien.MaNV = _nhanVienRepo.Them(nhanVien);
             });
 
@@ -137,13 +137,24 @@ public class NhanVienService
             if (!PhanQuyenService.CoQuyen(MaQuyen.NvSua))
                 return KetQua.Loi("Bạn không có quyền đổi trạng thái nhân viên.");
 
+            if (trangThai != TrangThaiNhanVien.HoatDong && trangThai != TrangThaiNhanVien.DaNghi)
+                return KetQua.Loi("Trạng thái nhân viên không hợp lệ.");
+
             _nhanVienRepo.DoiTrangThai(maNV, trangThai);
-            if (trangThai == TrangThaiTaiKhoan.BiKhoa)
+
+            // Đồng bộ tài khoản đăng nhập liên kết: cho nghỉ -> khóa để không đăng nhập
+            // được nữa; đi làm lại -> mở khóa để đăng nhập bình thường.
+            NhanVien nhanVien = _nhanVienRepo.LayTheoMa(maNV);
+            if (nhanVien?.MaTK != null)
             {
-                NhanVien nhanVien = _nhanVienRepo.LayTheoMa(maNV);
-                if (nhanVien?.MaTK != null) _taiKhoanRepo.DoiTrangThai(nhanVien.MaTK.Value, TrangThaiTaiKhoan.BiKhoa);
+                string trangThaiTK = trangThai == TrangThaiNhanVien.DaNghi
+                    ? TrangThaiTaiKhoan.BiKhoa
+                    : TrangThaiTaiKhoan.HoatDong;
+                _taiKhoanRepo.DoiTrangThai(nhanVien.MaTK.Value, trangThaiTK);
             }
-            return KetQua.Tot("Cập nhật trạng thái thành công.");
+            return KetQua.Tot(trangThai == TrangThaiNhanVien.DaNghi
+                ? "Đã chuyển nhân viên sang trạng thái nghỉ việc (tài khoản liên kết đã bị khóa)."
+                : "Đã chuyển nhân viên sang trạng thái hoạt động.");
         }
         catch (Exception ex)
         {

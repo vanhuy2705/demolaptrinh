@@ -190,6 +190,9 @@ public partial class frmDatSanAdmin : BaseForm
     private async void btnDatSan_Click(object sender, EventArgs e)
     {
         if (!CoQuyen(MaQuyen.DatSanThem)) return;
+        // Luôn tính lại tiền ngay trước khi đặt: tránh đặt sân với giá cũ hiển thị từ
+        // trước khi đổi ngày/giờ/sân/voucher mà quên bấm "Tính tiền".
+        await TinhTienAsync();
         if (!HopLe()) return;
 
         int maKH = TroGiup.LayGiaTriComboBox(cboKhachHang);
@@ -246,7 +249,7 @@ public partial class frmDatSanAdmin : BaseForm
         if (dangChon == null) return;
         if (!CoQuyen(MaQuyen.DatSanHuy)) return;
 
-        string lyDo = frmNhapLieu.NhapChuoi("Hủy booking", "Lý do hủy (không bắt buộc):", "Khách hủy", false, this);
+        string lyDo = frmNhapLieu.NhapChuoi("Hủy booking", "Lý do hủy (không bắt buộc):", "Khách hủy", false, this, batBuocNhap: false);
         if (lyDo == null) return;
 
         await ThucHienAsync(() => ServiceFactory.DatSan.HuyDatSan(dangChon.MaDat, lyDo));

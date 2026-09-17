@@ -29,11 +29,14 @@ public class VoucherRepository : BaseRepository, IVoucherRepository
     };
 
     public List<Voucher> LayTatCa(string tuKhoa = "", bool? chiConHan = null) =>
+        // So sánh theo NGÀY (CAST giờ hiện tại về DATE): NgayBatDau/KetThuc là cột DATE
+        // (nửa đêm). Dùng GETDATE() nguyên giờ-phút sẽ loại oan voucher ngay trong ngày
+        // cuối còn hiệu lực (vd: hạn 17/09 nhưng 17/09 15:00 đã bị coi là hết hạn).
         DanhSach($@"SELECT {Cot} FROM VOUCHER
                     WHERE (@TuKhoa IS NULL OR MaCode LIKE @TuKhoa OR TenVoucher LIKE @TuKhoa)
-                      AND (@ChiConHan IS NULL OR (@ChiConHan = 1 AND GETDATE() BETWEEN NgayBatDau AND NgayKetThuc
+                      AND (@ChiConHan IS NULL OR (@ChiConHan = 1 AND CAST(GETDATE() AS DATE) BETWEEN NgayBatDau AND NgayKetThuc
                            AND SoLuongDaDung < SoLuong AND TrangThai = 'HoatDong')
-                        OR (@ChiConHan = 0 AND NOT (GETDATE() BETWEEN NgayBatDau AND NgayKetThuc
+                        OR (@ChiConHan = 0 AND NOT (CAST(GETDATE() AS DATE) BETWEEN NgayBatDau AND NgayKetThuc
                            AND SoLuongDaDung < SoLuong AND TrangThai = 'HoatDong')))
                     ORDER BY NgayKetThuc DESC",
             AnhXa,

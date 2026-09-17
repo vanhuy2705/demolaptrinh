@@ -38,7 +38,7 @@ public partial class frmVoucher : BaseForm
         Luoi.DatDinhDangNgay(dgvVoucher, "dd/MM/yyyy", "NgayKetThuc");
         Luoi.HienThiTrangThai(dgvVoucher, "TrangThai", TrangThaiVoucher.TenHienThi);
         Luoi.ToMauTrangThai(dgvVoucher, "TrangThai");
-        dgvVoucher.Columns["LoaiGiam"].Visible = false;
+        Luoi.AnCot(dgvVoucher, "LoaiGiam");
         dgvVoucher.CellFormatting += dgvVoucher_CellFormatting;
 
         cboLoaiGiam.Items.AddRange(new object[] { "Phần trăm (%)", "Số tiền (đ)" });
@@ -164,7 +164,7 @@ public partial class frmVoucher : BaseForm
 
     private async void btnLuu_Click(object sender, EventArgs e)
     {
-        if (!HopLe()) return;
+        if (!HopLe(out decimal giaTriGiam, out decimal donToiThieu, out int soLuong)) return;
 
         bool laPhanTram = cboLoaiGiam.SelectedIndex == 0;
         var voucher = new Voucher
@@ -172,9 +172,9 @@ public partial class frmVoucher : BaseForm
             MaCode = txtMaCode.Text.Trim().ToUpperInvariant(),
             TenVoucher = txtTenVoucher.Text.Trim(),
             LoaiGiam = laPhanTram ? LoaiGiam.PhanTram : LoaiGiam.SoTien,
-            GiaTriGiam = decimal.Parse(txtGiaTriGiam.Text.Trim()),
-            DonToiThieu = string.IsNullOrWhiteSpace(txtDonToiThieu.Text) ? 0 : decimal.Parse(txtDonToiThieu.Text.Trim()),
-            SoLuong = int.Parse(txtSoLuong.Text.Trim()),
+            GiaTriGiam = giaTriGiam,
+            DonToiThieu = donToiThieu,
+            SoLuong = soLuong,
             NgayBatDau = dtpNgayBatDau.Value.Date,
             NgayKetThuc = dtpNgayKetThuc.Value.Date,
             TrangThai = cboTrangThai.SelectedIndex == 0 ? TrangThaiVoucher.HoatDong : TrangThaiVoucher.TamNgung,
@@ -200,14 +200,23 @@ public partial class frmVoucher : BaseForm
         _ = TimKiemAsync();
     }
 
-    private bool HopLe()
+    private bool HopLe(out decimal giaTriGiam, out decimal donToiThieu, out int soLuong)
     {
         errLoi.Clear();
         bool loi = TroGiup.Rong(txtMaCode, "mã voucher", errLoi);
         loi |= TroGiup.Rong(txtTenVoucher, "tên voucher", errLoi);
-        loi |= TroGiup.SaiTien(txtGiaTriGiam, "giá trị giảm", errLoi, out decimal giaTriGiam);
-        loi |= TroGiup.SaiTien(txtDonToiThieu, "đơn tối thiểu", errLoi, out decimal donToiThieu);
-        loi |= TroGiup.SaiSoNguyen(txtSoLuong, "số lượng", errLoi, out int soLuong);
+        loi |= TroGiup.SaiTien(txtGiaTriGiam, "giá trị giảm", errLoi, out giaTriGiam);
+        // Đơn tối thiểu được phép để trống hoặc bằng 0 (voucher không yêu cầu đơn tối thiểu).
+        if (string.IsNullOrWhiteSpace(txtDonToiThieu.Text))
+        {
+            donToiThieu = 0m;
+            errLoi.SetError(txtDonToiThieu, "");
+        }
+        else
+        {
+            loi |= TroGiup.SaiTien(txtDonToiThieu, "đơn tối thiểu", errLoi, out donToiThieu, choPhepBangKhong: true);
+        }
+        loi |= TroGiup.SaiSoNguyen(txtSoLuong, "số lượng", errLoi, out soLuong, nhoNhat: 1);
 
         if (!loi && cboLoaiGiam.SelectedIndex == 0 && giaTriGiam > 100)
         {

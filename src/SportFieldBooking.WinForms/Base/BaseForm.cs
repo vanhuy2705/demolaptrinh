@@ -29,8 +29,17 @@ public partial class BaseForm : Form
         if (_daKhoiDong) return;
         _daKhoiDong = true;
 
-        GiaoDien.ApDung(this);
-        ResponsiveLayout.ApDung(this);
+        // Áp dụng giao diện trong try/catch riêng: trục trặc màu/bố cục không bao giờ
+        // được chặn người dùng mở form (form vẫn dùng được với giao diện mặc định).
+        try
+        {
+            GiaoDien.ApDung(this);
+            ResponsiveLayout.ApDung(this);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine("Bỏ qua lỗi áp dụng giao diện: " + ex.Message);
+        }
 
         if (!CoQuyenMoForm())
         {

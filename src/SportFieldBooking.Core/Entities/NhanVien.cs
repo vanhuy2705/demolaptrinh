@@ -1,3 +1,5 @@
+using SportFieldBooking.Core.Common;
+
 namespace SportFieldBooking.Core.Entities;
 
 /// <summary>Bảng NHAN_VIEN: hồ sơ nhân viên, liên kết 1-1 với TAIKHOAN.</summary>
@@ -11,7 +13,7 @@ public class NhanVien
     public string DiaChi { get; set; } = "";
     public string ChucVu { get; set; } = "";
     public DateTime? NgayVaoLam { get; set; }
-    public string TrangThai { get; set; } = TrangThaiTaiKhoan.HoatDong;
+    public string TrangThai { get; set; } = TrangThaiNhanVien.HoatDong;
 
     // --- Thuộc tính hiển thị (đọc thêm từ bảng TAIKHOAN, không ánh xạ trực tiếp) ---
     public string TenDangNhap { get; set; } = "";

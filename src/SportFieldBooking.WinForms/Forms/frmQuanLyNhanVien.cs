@@ -35,7 +35,7 @@ public partial class frmQuanLyNhanVien : BaseForm
         Luoi.DatDoRong(dgvNhanVien, "VaiTro", 110);
         Luoi.DatDoRong(dgvNhanVien, "TrangThai", 100);
         Luoi.HienThiTrangThai(dgvNhanVien, "VaiTro", VaiTro.TenHienThi);
-        Luoi.HienThiTrangThai(dgvNhanVien, "TrangThai", TrangThaiTaiKhoan.TenHienThi);
+        Luoi.HienThiTrangThai(dgvNhanVien, "TrangThai", TrangThaiNhanVien.TenHienThi);
         Luoi.ToMauTrangThai(dgvNhanVien, "TrangThai");
 
         cboVaiTro.Items.Clear();
@@ -76,8 +76,8 @@ public partial class frmQuanLyNhanVien : BaseForm
         cboVaiTro.Enabled = _cheDo == CheDo.Them;
         dgvNhanVien.Enabled = !dangSua;
 
-        btnKhoaMo.Text = dangChon != null && dangChon.TrangThai == TrangThaiTaiKhoan.BiKhoa
-            ? "Mở khóa" : "Khóa";
+        btnKhoaMo.Text = dangChon != null && dangChon.TrangThai == TrangThaiNhanVien.DaNghi
+            ? "Đi làm lại" : "Cho nghỉ";
     }
 
     private async Task TimKiemAsync()
@@ -119,7 +119,7 @@ public partial class frmQuanLyNhanVien : BaseForm
         txtTenDangNhap.Text = dangChon.TenDangNhap;
         txtMatKhau.Clear();
         dtpNgayVaoLam.Value = dangChon.NgayVaoLam ?? DateTime.Today;
-        cboTrangThai.SelectedIndex = dangChon.TrangThai == TrangThaiTaiKhoan.BiKhoa ? 1 : 0;
+        cboTrangThai.SelectedIndex = dangChon.TrangThai == TrangThaiNhanVien.DaNghi ? 1 : 0;
         cboVaiTro.SelectedIndex = dangChon.VaiTro == VaiTro.Admin ? 1 : 0;
     }
 
@@ -182,7 +182,7 @@ public partial class frmQuanLyNhanVien : BaseForm
             DiaChi = txtDiaChi.Text.Trim(),
             ChucVu = txtChucVu.Text.Trim(),
             NgayVaoLam = dtpNgayVaoLam.Value.Date,
-            TrangThai = cboTrangThai.SelectedIndex == 1 ? TrangThaiTaiKhoan.BiKhoa : TrangThaiTaiKhoan.HoatDong
+            TrangThai = cboTrangThai.SelectedIndex == 1 ? TrangThaiNhanVien.DaNghi : TrangThaiNhanVien.HoatDong
         };
 
         bool thanhCong;
@@ -241,9 +241,9 @@ public partial class frmQuanLyNhanVien : BaseForm
         NhanVien dangChon = Luoi.LayDongDangChon<NhanVien>(dgvNhanVien);
         if (dangChon == null || !CoQuyen(MaQuyen.NvSua)) return;
 
-        string trangThaiMoi = dangChon.TrangThai == TrangThaiTaiKhoan.BiKhoa
-            ? TrangThaiTaiKhoan.HoatDong
-            : TrangThaiTaiKhoan.BiKhoa;
+        string trangThaiMoi = dangChon.TrangThai == TrangThaiNhanVien.DaNghi
+            ? TrangThaiNhanVien.HoatDong
+            : TrangThaiNhanVien.DaNghi;
 
         await ThucHienAsync(() => ServiceFactory.NhanVien.DoiTrangThai(dangChon.MaNV, trangThaiMoi));
         _ = TimKiemAsync();

@@ -657,7 +657,7 @@ WHERE NOT EXISTS (SELECT 1 FROM VAI_TRO_QUYEN x
     N'KH_XEM',
     N'DATSAN_XEM_CUATOI', N'DATSAN_THEM', N'DATSAN_HUY',
     N'LICH_XEM_CUATOI',
-    N'HD_XEM_CUATOI',
+    N'HD_XEM_CUATOI', N'HD_IN',
     N'VOUCHER_XEM', N'VOUCHER_SUDUNG',
     N'KM_XEM',
     N'THONGTKE_CANHAN');
@@ -688,6 +688,15 @@ WHERE tk.VaiTro IN (N'Admin', N'NhanVien')
                   WHERE nv2.SDT = N'09' + RIGHT(N'00000000' + CAST(tk.MaTK AS NVARCHAR(10)), 8));
 
 PRINT N'== Đã bổ sung hồ sơ nhân viên cho ' + CAST(@@ROWCOUNT AS NVARCHAR(10)) + N' tài khoản ==';
+GO
+
+/* ============ D2. VÁ LỖI: khách hàng thiếu quyền in hóa đơn (HD_IN) ============
+   Lỗi: ma trận QuyenKhachHang thiếu HD_IN nên nút "In" trong chi tiết hóa đơn của
+   khách hàng luôn báo "không có quyền". Chạy an toàn nhiều lần (NOT EXISTS). */
+IF NOT EXISTS (SELECT 1 FROM VAI_TRO_QUYEN WHERE MaVaiTro = N'KhachHang' AND MaQuyen = N'HD_IN')
+    INSERT INTO VAI_TRO_QUYEN (MaVaiTro, MaQuyen) VALUES (N'KhachHang', N'HD_IN');
+
+PRINT N'== Đã vá quyền HD_IN cho vai trò KhachHang (nếu thiếu) ==';
 GO
 
 /* ====================== E. KIỂM TRA ====================== */

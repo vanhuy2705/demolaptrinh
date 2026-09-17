@@ -26,7 +26,9 @@ public static class DataRowExtensions
     public static TimeSpan Gio(this DataRow dong, string tenCot)
     {
         if (!dong.CoCot(tenCot) || dong[tenCot] == DBNull.Value) return TimeSpan.Zero;
-        return dong[tenCot] is TimeSpan ts ? ts : TimeSpan.Parse(Convert.ToString(dong[tenCot]));
+        if (dong[tenCot] is TimeSpan ts) return ts;
+        // Dữ liệu lạ (chuỗi sai định dạng...): trả 0 giờ thay vì ném FormatException.
+        return TimeSpan.TryParse(Convert.ToString(dong[tenCot]), out TimeSpan gio) ? gio : TimeSpan.Zero;
     }
 
     public static int? SoNguyenCoTheNull(this DataRow dong, string tenCot) =>

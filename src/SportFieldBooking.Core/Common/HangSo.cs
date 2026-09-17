@@ -122,6 +122,26 @@ public static class TrangThaiVoucher
         trangThai == HoatDong ? "Hoạt động" : "Tạm ngưng";
 }
 
+/// <summary>
+/// Trạng thái hồ sơ NHÂN VIÊN (khớp CHECK constraint của CSDL: 'HoatDong' | 'DaNghi').
+/// KHÔNG dùng chung TrangThaiTaiKhoan ('BiKhoa') ở đây - ghi 'BiKhoa' vào NHAN_VIEN
+/// sẽ bị SQL Server từ chối.
+/// </summary>
+public static class TrangThaiNhanVien
+{
+    public const string HoatDong = "HoatDong";
+    public const string DaNghi = "DaNghi";
+
+    public static readonly string[] TatCa = { HoatDong, DaNghi };
+
+    public static string TenHienThi(string trangThai) => trangThai switch
+    {
+        DaNghi => "Đã nghỉ việc",
+        HoatDong => "Hoạt động",
+        _ => trangThai ?? ""
+    };
+}
+
 /// <summary>Khóa của bảng THAM_SO (cấu hình hệ thống).</summary>
 public static class ThamSoKeys
 {

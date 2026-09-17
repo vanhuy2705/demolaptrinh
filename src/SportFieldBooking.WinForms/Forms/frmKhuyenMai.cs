@@ -144,13 +144,13 @@ public partial class frmKhuyenMai : BaseForm
 
     private async void btnLuu_Click(object sender, EventArgs e)
     {
-        if (!HopLe()) return;
+        if (!HopLe(out decimal phanTramGiam)) return;
 
         var khuyenMai = new KhuyenMai
         {
             TenKM = txtTenKM.Text.Trim(),
             LoaiKhuyenMai = txtLoaiKhuyenMai.Text.Trim(),
-            PhanTramGiam = decimal.Parse(txtPhanTramGiam.Text.Trim()),
+            PhanTramGiam = phanTramGiam,
             NgayBatDau = dtpNgayBatDau.Value.Date,
             NgayKetThuc = dtpNgayKetThuc.Value.Date,
             ApDungCuoiTuan = chkApDungCuoiTuan.Checked,
@@ -176,11 +176,11 @@ public partial class frmKhuyenMai : BaseForm
         _ = TimKiemAsync();
     }
 
-    private bool HopLe()
+    private bool HopLe(out decimal phanTramGiam)
     {
         errLoi.Clear();
         bool loi = TroGiup.Rong(txtTenKM, "tên chương trình", errLoi);
-        loi |= TroGiup.SaiTien(txtPhanTramGiam, "phần trăm giảm", errLoi, out decimal phanTramGiam);
+        loi |= TroGiup.SaiTien(txtPhanTramGiam, "phần trăm giảm", errLoi, out phanTramGiam);
 
         if (!loi && phanTramGiam > 100)
         {

@@ -71,7 +71,9 @@ public partial class frmThongTinCaNhan : BaseForm
 
     protected override void CapNhatTrangThaiNut()
     {
-        bool coQuyenSua = _khachHang != null && PhanQuyenService.CoQuyen(MaQuyen.KhSua);
+        // Form này chỉ hiển thị hồ sơ của CHÍNH người đăng nhập (tầng nghiệp vụ kiểm tra
+        // MaKH trùng khớp), nên chỉ cần quyền xem để tự sửa - không đòi quyền quản lý.
+        bool coQuyenSua = _khachHang != null && PhanQuyenService.CoQuyen(MaQuyen.KhXem);
         btnSua.Enabled = coQuyenSua && !_dangSua;
         btnLuu.Enabled = coQuyenSua && _dangSua;
         btnHuy.Enabled = _dangSua;
@@ -85,7 +87,7 @@ public partial class frmThongTinCaNhan : BaseForm
 
     private void btnSua_Click(object sender, EventArgs e)
     {
-        if (!CoQuyen(MaQuyen.KhSua)) return;
+        if (!CoQuyen(MaQuyen.KhXem)) return;
         _dangSua = true;
         txtHoTen.Select();
         CapNhatTrangThaiNut();
@@ -93,7 +95,7 @@ public partial class frmThongTinCaNhan : BaseForm
 
     private async void btnLuu_Click(object sender, EventArgs e)
     {
-        if (_khachHang == null || !CoQuyen(MaQuyen.KhSua)) return;
+        if (_khachHang == null || !CoQuyen(MaQuyen.KhXem)) return;
 
         errLoi.Clear();
         bool loi = TroGiup.Rong(txtHoTen, "họ tên", errLoi);

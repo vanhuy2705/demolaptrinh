@@ -311,6 +311,13 @@ public static class VeBieuTuong
                 break;
 
             // ---------------- Trạng thái & khác ----------------
+            case "thongtin":
+            case "info":
+                b.Circle(false, 12f, 12f, 8.8f);
+                b.Dot(12f, 8f, 1.1f);
+                b.Line(12f, 11.4f, 12f, 17.6f);
+                break;
+
             case "canhbao":
             case "warning":
                 b.Poly(false, 12f, 3.2f, 21.6f, 20.4f, 2.4f, 20.4f);

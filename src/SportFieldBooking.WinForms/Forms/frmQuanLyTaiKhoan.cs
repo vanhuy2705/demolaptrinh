@@ -229,7 +229,7 @@ public partial class frmQuanLyTaiKhoan : BaseForm
 
         string matKhauMoi = frmNhapLieu.NhapChuoi("Đặt lại mật khẩu",
             $"Mật khẩu mới cho tài khoản \"{dangChon.TenDangNhap}\" (ít nhất 6 ký tự):",
-            "123456", false, this);
+            "123456", cheDoMatKhau: true, chuSoHuu: this);
         if (string.IsNullOrWhiteSpace(matKhauMoi)) return;
 
         await ThucHienAsync(() => ServiceFactory.TaiKhoan.DatLaiMatKhau(dangChon.MaTK, matKhauMoi.Trim()));

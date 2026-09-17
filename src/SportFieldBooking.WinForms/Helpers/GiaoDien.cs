@@ -201,16 +201,33 @@ public static class GiaoDien
     /// <summary>Áp dụng lại bảng màu cho tất cả form đang mở (dùng sau khi đổi chủ đề).</summary>
     public static void LamMoiTatCa()
     {
-        for (int i = Application.OpenForms.Count - 1; i >= 0; i--)
+        // Chụp danh sách trước để tránh lỗi khi tập hợp thay đổi giữa chừng (form đang đóng).
+        Form[] danhSach;
+        try
         {
-            Form f = Application.OpenForms[i];
-            if (f == null || f.IsDisposed) continue;
+            danhSach = Application.OpenForms.Cast<Form>().ToArray();
+        }
+        catch
+        {
+            return;
+        }
 
-            f.BackColor = ManHinhNen;
-            f.ForeColor = Chu;
-            f.Font = ChuThuong;
-            ApDungCho(f);          // đệ quy: xử lý cả form con nhúng trong panel
-            f.Refresh();
+        foreach (Form f in danhSach)
+        {
+            try
+            {
+                if (f == null || f.IsDisposed || !f.IsHandleCreated) continue;
+
+                f.BackColor = ManHinhNen;
+                f.ForeColor = Chu;
+                f.Font = ChuThuong;
+                ApDungCho(f);          // đệ quy: xử lý cả form con nhúng trong panel
+                f.Refresh();
+            }
+            catch
+            {
+                // Một form lỗi (đang đóng/damage) không được chặn đổi chủ đề các form còn lại.
+            }
         }
     }
 
@@ -396,7 +413,7 @@ public static class GiaoDien
     {
         "Trong" or "DaThanhToan" or "HoanThanh" or "HoatDong" => ThanhCong,
         "DangThue" or "DangSuDung" or "ChuaThanhToan" or "DaDat" => CanhBao,
-        "BaoTri" or "DaHuy" or "BiKhoa" or "TamNgung" => NguyHiem,
+        "BaoTri" or "DaHuy" or "BiKhoa" or "TamNgung" or "DaNghi" => NguyHiem,
         _ => ChuPhu
     };
 

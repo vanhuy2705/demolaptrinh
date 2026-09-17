@@ -39,7 +39,7 @@ public static class PhanQuyenService
         MaQuyen.KhXem,
         MaQuyen.DatSanXemCuaToi, MaQuyen.DatSanThem, MaQuyen.DatSanHuy,
         MaQuyen.LichXemCuaToi,
-        MaQuyen.HdXemCuaToi,
+        MaQuyen.HdXemCuaToi, MaQuyen.HdIn,
         MaQuyen.VoucherXem, MaQuyen.VoucherSuDung,
         MaQuyen.KmXem,
         MaQuyen.ThongKeCaNhan

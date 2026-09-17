@@ -10,11 +10,13 @@ public partial class frmNhapLieu : Form
         InitializeComponent();
     }
 
-    /// <summary>Giá trị người dùng đã nhập (null nếu hủy).</summary>
+    /// <summary>Giá trị người dùng đã nhập (null nếu hủy; chuỗi rỗng nếu cho phép bỏ trống).</summary>
     public string GiaTri { get; private set; }
 
+    private bool _batBuocNhap = true;
+
     public static string NhapChuoi(string tieuDe, string nhanLoi, string giaTriMacDinh = "",
-        bool cheDoMatKhau = false, IWin32Window chuSoHuu = null)
+        bool cheDoMatKhau = false, IWin32Window chuSoHuu = null, bool batBuocNhap = true)
     {
         using var hopThoai = new frmNhapLieu
         {
@@ -24,6 +26,7 @@ public partial class frmNhapLieu : Form
         hopThoai.lblNhanLoi.Text = nhanLoi;
         hopThoai.txtGiaTri.Text = giaTriMacDinh;
         hopThoai.txtGiaTri.UseSystemPasswordChar = cheDoMatKhau;
+        hopThoai._batBuocNhap = batBuocNhap;
 
         DialogResult ketQua = chuSoHuu == null ? hopThoai.ShowDialog() : hopThoai.ShowDialog(chuSoHuu);
         return ketQua == DialogResult.OK ? hopThoai.GiaTri : null;
@@ -31,7 +34,7 @@ public partial class frmNhapLieu : Form
 
     private void btnDongY_Click(object sender, EventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(txtGiaTri.Text))
+        if (_batBuocNhap && string.IsNullOrWhiteSpace(txtGiaTri.Text))
         {
             frmThongBao.HienThi("Vui lòng nhập giá trị.", "Thiếu dữ liệu", frmThongBao.LoaiThongBao.CanhBao, this);
             txtGiaTri.Select();

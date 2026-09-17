@@ -49,8 +49,15 @@ public static class TroGiup
         return Sai(!MauEmail.IsMatch(giaTri), o, "Email không đúng định dạng (vd: ten@gmail.com).", loi);
     }
 
-    /// <summary>Đọc số tiền từ ô nhập, báo lỗi nếu không hợp lệ.</summary>
-    public static bool SaiTien(Control o, string tenTruong, ErrorProvider loi, out decimal ketQua, bool choPhepAm = false)
+    /// <summary>
+    /// Đọc số tiền từ ô nhập, báo lỗi nếu không hợp lệ.
+    /// LƯU Ý CHO NGƯỜI GỌI: luôn dùng giá trị <paramref name="ketQua"/> đã đọc được,
+    /// KHÔNG tự Parse lại ô nhập (chuỗi gốc có thể chứa dấu phân cách/ký tự tiền tệ
+    /// mà decimal.Parse với culture hiện tại không hiểu -> ném FormatException
+    /// dù kiểm tra đã báo hợp lệ).
+    /// </summary>
+    public static bool SaiTien(Control o, string tenTruong, ErrorProvider loi, out decimal ketQua,
+        bool choPhepAm = false, bool choPhepBangKhong = false)
     {
         ketQua = 0m;
         string chuoi = o.Text.Trim().Replace(",", "").Replace(".", "").Replace("đ", "").Trim();
@@ -58,7 +65,9 @@ public static class TroGiup
             return Sai(true, o, $"Vui lòng nhập {tenTruong}.", loi);
         if (!decimal.TryParse(chuoi, NumberStyles.Any, CultureInfo.InvariantCulture, out ketQua))
             return Sai(true, o, $"{tenTruong} phải là số.", loi);
-        if (!choPhepAm && ketQua <= 0)
+        if (!choPhepAm && ketQua < 0)
+            return Sai(true, o, $"{tenTruong} không được âm.", loi);
+        if (!choPhepAm && !choPhepBangKhong && ketQua == 0)
             return Sai(true, o, $"{tenTruong} phải lớn hơn 0.", loi);
         loi?.SetError(o, "");
         return false;

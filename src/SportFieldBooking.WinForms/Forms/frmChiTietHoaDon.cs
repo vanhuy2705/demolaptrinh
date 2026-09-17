@@ -136,7 +136,7 @@ public partial class frmChiTietHoaDon : BaseForm
         if (!CoQuyen(MaQuyen.HdXoa)) return;
         if (!XacNhan($"Hủy hóa đơn #{_hoaDon.MaHD}?", "Xác nhận hủy hóa đơn")) return;
 
-        string lyDo = frmNhapLieu.NhapChuoi("Hủy hóa đơn", "Lý do hủy:", "Hủy hóa đơn", false, this);
+        string lyDo = frmNhapLieu.NhapChuoi("Hủy hóa đơn", "Lý do hủy (không bắt buộc):", "Hủy hóa đơn", false, this, batBuocNhap: false);
         if (lyDo == null) return;
 
         if (!await ThucHienAsync(() => ServiceFactory.HoaDon.HuyHoaDon(_hoaDon.MaHD, lyDo))) return;

@@ -69,6 +69,7 @@ public partial class frmDatSanKhachHang : BaseForm
         catch (Exception ex) { BaoLoi("Không thể tải danh sách sân", ex); }
         finally { KetThucBan(); }
 
+        await TaiLichTrongNgayAsync(); // hiện lịch sân ngay khi mở form (trước đây lưới trống)
         await TinhTienAsync();
     }
 
@@ -171,6 +172,9 @@ public partial class frmDatSanKhachHang : BaseForm
                 "Không thể đặt sân");
             return;
         }
+        // Luôn tính lại tiền ngay trước khi đặt: tránh đặt sân với giá cũ hiển thị từ
+        // trước khi đổi ngày/giờ/sân/voucher mà quên bấm "Tính tiền".
+        await TinhTienAsync();
         if (_ketQuaTien == null)
         {
             CanhBao("Khung giờ chưa hợp lệ, vui lòng kiểm tra lại giờ bắt đầu / kết thúc.", "Chưa thể đặt sân");

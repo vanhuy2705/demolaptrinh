@@ -40,7 +40,7 @@ public partial class frmHoaDonAdmin : BaseForm
         Luoi.DatDinhDangTien(dgvHoaDon, "TienGoc", "TienGiam", "TongTien");
         Luoi.DatDinhDangNgay(dgvHoaDon, "dd/MM/yyyy HH:mm", "NgayLap");
         Luoi.DatDinhDangNgay(dgvHoaDon, "dd/MM/yyyy", "NgayDat");
-        dgvHoaDon.Columns["LoaiGiamGia"].Visible = false;
+        Luoi.AnCot(dgvHoaDon, "LoaiGiamGia");
         Luoi.HienThiTrangThai(dgvHoaDon, "TrangThai", TrangThaiHoaDon.TenHienThi);
         Luoi.ToMauTrangThai(dgvHoaDon, "TrangThai");
 
@@ -154,7 +154,7 @@ public partial class frmHoaDonAdmin : BaseForm
         if (cboBookingChuaLap.SelectedItem is not MucBooking muc) return;
         if (!CoQuyen(MaQuyen.HdLap)) return;
 
-        string maVoucher = frmNhapLieu.NhapChuoi("Lập hóa đơn", "Mã voucher (để trống nếu không có):", "", false, this);
+        string maVoucher = frmNhapLieu.NhapChuoi("Lập hóa đơn", "Mã voucher (để trống nếu không có):", "", false, this, batBuocNhap: false);
         if (maVoucher == null) return;
 
         int maDat = muc.MaDat;

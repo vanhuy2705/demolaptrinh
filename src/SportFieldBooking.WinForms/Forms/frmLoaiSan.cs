@@ -29,7 +29,6 @@ public partial class frmLoaiSan : BaseForm
             ("SoLuongSan", "Số sân"));
         Luoi.DatDoRong(dgvLoaiSan, "MaLoaiSan", 70);
         Luoi.DatDoRong(dgvLoaiSan, "SoLuongSan", 90);
-        AnCot();
     }
 
     protected override Task TaiDuLieuAsync() => TimKiemAsync();
@@ -55,8 +54,6 @@ public partial class frmLoaiSan : BaseForm
         btnXoa.Visible = choPhepNhap || !coQuyenQuanLy;
     }
 
-    private void AnCot() { }
-
     private async Task TimKiemAsync()
     {
         string tuKhoa = txtTimKiem.Text.Trim();
@@ -65,6 +62,7 @@ public partial class frmLoaiSan : BaseForm
         {
             var danhSach = await ChayNenAsync(() => ServiceFactory.LoaiSan.LayTatCa(tuKhoa));
             Luoi.GanDuLieu(dgvLoaiSan, danhSach);
+            Luoi.AnCot(dgvLoaiSan, "HinhAnh"); // cột dữ liệu ảnh: không hiển thị trên lưới
             HienThiChiTiet();
             CapNhatTrangThaiNut();
         }

@@ -60,7 +60,7 @@ public class NhanVienRepository : BaseRepository, INhanVienRepository
             ThamSo("@Email", nhanVien.Email),
             ThamSo("@DiaChi", nhanVien.DiaChi),
             ThamSo("@ChucVu", nhanVien.ChucVu),
-            ThamSo("@NgayVaoLam", (object)nhanVien.NgayVaoLam ?? DBNull.Value),
+            ThamSo("@NgayVaoLam", (object)nhanVien.NgayVaoLam ?? DateTime.Today), // NOT NULL: null -> hôm nay (đúng DEFAULT của cột)
             ThamSo("@TrangThai", nhanVien.TrangThai));
 
     public int CapNhat(NhanVien nhanVien) =>
@@ -74,7 +74,7 @@ public class NhanVienRepository : BaseRepository, INhanVienRepository
             ThamSo("@Email", nhanVien.Email),
             ThamSo("@DiaChi", nhanVien.DiaChi),
             ThamSo("@ChucVu", nhanVien.ChucVu),
-            ThamSo("@NgayVaoLam", (object)nhanVien.NgayVaoLam ?? DBNull.Value),
+            ThamSo("@NgayVaoLam", (object)nhanVien.NgayVaoLam ?? DateTime.Today), // NOT NULL: null -> hôm nay (đúng DEFAULT của cột)
             ThamSo("@TrangThai", nhanVien.TrangThai),
             ThamSo("@MaNV", nhanVien.MaNV));
 

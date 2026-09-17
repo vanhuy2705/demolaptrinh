@@ -116,7 +116,7 @@ public partial class frmChiTietDatSan : BaseForm
         if (!CoQuyen(MaQuyen.DatSanHuy)) return;
 
         string lyDo = frmNhapLieu.NhapChuoi("Hủy booking #" + _datSan.MaDat,
-            "Lý do hủy (không bắt buộc):", "Khách hủy", false, this);
+            "Lý do hủy (không bắt buộc):", "Khách hủy", false, this, batBuocNhap: false);
         if (lyDo == null) return;
 
         if (!await ThucHienAsync(() => ServiceFactory.DatSan.HuyDatSan(_datSan.MaDat, lyDo))) return;
