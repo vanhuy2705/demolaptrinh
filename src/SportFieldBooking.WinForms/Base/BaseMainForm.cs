@@ -17,6 +17,29 @@ public partial class BaseMainForm : BaseForm
         InitializeComponent();
     }
 
+    /// <summary>Khôi phục kích thước / trạng thái cửa sổ mà người dùng dùng lần trước.</summary>
+    protected override void OnLoad(EventArgs e)
+    {
+        base.OnLoad(e);
+        if (CaiDatNguoiDung.CuaSoMaximized)
+        {
+            WindowState = FormWindowState.Maximized;
+        }
+        else if (CaiDatNguoiDung.KichThuocCuaSo is Size kt)
+        {
+            WindowState = FormWindowState.Normal;
+            Size = kt;
+        }
+    }
+
+    /// <summary>Ghi nhớ kích thước / trạng thái cửa sổ khi thoát.</summary>
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        base.OnFormClosing(e);
+        Size kichThuoc = WindowState == FormWindowState.Normal ? Size : RestoreBounds.Size;
+        CaiDatNguoiDung.DatCuaSo(kichThuoc, WindowState == FormWindowState.Maximized);
+    }
+
     /// <summary>Mở một Form con bên trong khung nội dung (giao diện dạng một cửa sổ).</summary>
     protected void MoFormCon(Form formCon, Panel khungNoiDung)
     {

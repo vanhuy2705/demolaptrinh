@@ -19,10 +19,21 @@ public partial class frmDangNhap : Form
         ResponsiveLayout.ApDung(this);
         StartPosition = FormStartPosition.CenterScreen;
         lblPhienBan.Text = "Phiên bản 1.0  |  .NET 10 Windows Forms";
-        txtTenDangNhap.Select();
+
+        // Nhớ tài khoản đăng nhập gần nhất cho lần sau.
+        string nho = CaiDatNguoiDung.TenDangNhapGanNhat;
+        if (!string.IsNullOrWhiteSpace(nho))
+        {
+            txtTenDangNhap.Text = nho;
+            txtMatKhau.Select();
+        }
+        else
+        {
+            txtTenDangNhap.Select();
+        }
     }
 
-    private void btnDangNhap_Click(object sender, EventArgs e)
+    private async void btnDangNhap_Click(object sender, EventArgs e)
     {
         string tenDangNhap = txtTenDangNhap.Text.Trim();
         string matKhau = txtMatKhau.Text;
@@ -35,9 +46,11 @@ public partial class frmDangNhap : Form
         }
 
         btnDangNhap.Enabled = false;
+        btnDangNhap.Text = "Đang đăng nhập…";
         try
         {
-            KetQua<TaiKhoan> ketQua = ServiceFactory.Auth.DangNhap(tenDangNhap, matKhau);
+            // Xác thực chạy dưới nền để cửa sổ không đứng hình.
+            KetQua<TaiKhoan> ketQua = await Task.Run(() => ServiceFactory.Auth.DangNhap(tenDangNhap, matKhau));
             if (!ketQua.ThanhCong)
             {
                 frmThongBao.HienThi(ketQua.ThongBao, "Đăng nhập thất bại", frmThongBao.LoaiThongBao.Loi, this);
@@ -46,6 +59,7 @@ public partial class frmDangNhap : Form
                 return;
             }
 
+            CaiDatNguoiDung.DatTenDangNhap(tenDangNhap);
             DialogResult = DialogResult.OK;
             Close();
         }
@@ -56,6 +70,7 @@ public partial class frmDangNhap : Form
         finally
         {
             btnDangNhap.Enabled = true;
+            btnDangNhap.Text = "Đăng nhập";
         }
     }
 

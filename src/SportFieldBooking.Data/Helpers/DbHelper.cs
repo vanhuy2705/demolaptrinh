@@ -11,8 +11,10 @@ namespace SportFieldBooking.Data.Helpers;
 /// </summary>
 public static class DbHelper
 {
-    [ThreadStatic] private static SqlConnection _ketNoiHienTai;
-    [ThreadStatic] private static SqlTransaction _giaoDichHienTai;
+    // AsyncLocal (thay cho [ThreadStatic]) để giao dịch bao quanh chảy đúng qua
+    // các điểm await khi tầng nghiệp vụ chạy bất đồng bộ.
+    private static readonly AsyncLocal<SqlConnection?> _ketNoiHienTai = new();
+    private static readonly AsyncLocal<SqlTransaction?> _giaoDichHienTai = new();
 
     public static string ConnectionString
     {
@@ -25,8 +27,8 @@ public static class DbHelper
     /// <summary>Truy vấn trả về bảng dữ liệu (SELECT).</summary>
     public static DataTable TruyVan(string sql, params SqlParameter[] thamSo)
     {
-        bool dungKetNoiNgoai = _ketNoiHienTai != null;
-        SqlConnection ketNoi = dungKetNoiNgoai ? _ketNoiHienTai : new SqlConnection(ConnectionString);
+        bool dungKetNoiNgoai = _ketNoiHienTai.Value != null;
+        SqlConnection ketNoi = dungKetNoiNgoai ? _ketNoiHienTai.Value! : new SqlConnection(ConnectionString);
         try
         {
             if (!dungKetNoiNgoai) ketNoi.Open();
@@ -45,8 +47,8 @@ public static class DbHelper
     /// <summary>Thực thi INSERT/UPDATE/DELETE, trả về số dòng ảnh hưởng.</summary>
     public static int ThucThi(string sql, params SqlParameter[] thamSo)
     {
-        bool dungKetNoiNgoai = _ketNoiHienTai != null;
-        SqlConnection ketNoi = dungKetNoiNgoai ? _ketNoiHienTai : new SqlConnection(ConnectionString);
+        bool dungKetNoiNgoai = _ketNoiHienTai.Value != null;
+        SqlConnection ketNoi = dungKetNoiNgoai ? _ketNoiHienTai.Value! : new SqlConnection(ConnectionString);
         try
         {
             if (!dungKetNoiNgoai) ketNoi.Open();
@@ -69,8 +71,8 @@ public static class DbHelper
     /// <summary>Truy vấn một giá trị đơn (COUNT, SUM, SCOPE_IDENTITY...).</summary>
     public static object GiaTriDon(string sql, params SqlParameter[] thamSo)
     {
-        bool dungKetNoiNgoai = _ketNoiHienTai != null;
-        SqlConnection ketNoi = dungKetNoiNgoai ? _ketNoiHienTai : new SqlConnection(ConnectionString);
+        bool dungKetNoiNgoai = _ketNoiHienTai.Value != null;
+        SqlConnection ketNoi = dungKetNoiNgoai ? _ketNoiHienTai.Value! : new SqlConnection(ConnectionString);
         try
         {
             if (!dungKetNoiNgoai) ketNoi.Open();
@@ -106,7 +108,7 @@ public static class DbHelper
     /// </summary>
     public static void ChayGiaoDich(Action thucHien)
     {
-        if (_giaoDichHienTai != null)
+        if (_giaoDichHienTai.Value != null)
         {
             thucHien();          // đang trong giao dịch khác: dùng chung, không lồng
             return;
@@ -115,8 +117,8 @@ public static class DbHelper
         using var ketNoi = new SqlConnection(ConnectionString);
         ketNoi.Open();
         using var giaoDich = ketNoi.BeginTransaction();
-        _ketNoiHienTai = ketNoi;
-        _giaoDichHienTai = giaoDich;
+        _ketNoiHienTai.Value = ketNoi;
+        _giaoDichHienTai.Value = giaoDich;
         try
         {
             thucHien();
@@ -129,15 +131,116 @@ public static class DbHelper
         }
         finally
         {
-            _ketNoiHienTai = null;
-            _giaoDichHienTai = null;
+            _ketNoiHienTai.Value = null;
+            _giaoDichHienTai.Value = null;
         }
     }
 
     private static SqlCommand TaoLenh(string sql, SqlConnection ketNoi, SqlParameter[] thamSo)
     {
-        var lenh = new SqlCommand(sql, ketNoi, _giaoDichHienTai);
+        var lenh = new SqlCommand(sql, ketNoi, _giaoDichHienTai.Value);
         if (thamSo?.Length > 0) lenh.Parameters.AddRange(thamSo);
         return lenh;
+    }
+
+    // ==================================================================
+    //  BẢN BẤT ĐỒNG BỘ (async) - dùng cho luồng giao diện để không đứng hình
+    // ==================================================================
+
+    /// <summary>Truy vấn SELECT bất đồng bộ.</summary>
+    public static async Task<DataTable> TruyVanAsync(string sql, params SqlParameter[] thamSo)
+    {
+        bool dungKetNoiNgoai = _ketNoiHienTai.Value != null;
+        SqlConnection ketNoi = dungKetNoiNgoai ? _ketNoiHienTai.Value! : new SqlConnection(ConnectionString);
+        try
+        {
+            if (!dungKetNoiNgoai) await ketNoi.OpenAsync();
+            using var lenh = TaoLenh(sql, ketNoi, thamSo);
+            using var adapter = new SqlDataAdapter(lenh);
+            var bang = new DataTable();
+            // SqlDataAdapter không có FillAsync: đọc bằng DbDataReader async rồi nạp vào DataTable.
+            using var doc = await lenh.ExecuteReaderAsync();
+            bang.Load(doc);
+            return bang;
+        }
+        finally
+        {
+            if (!dungKetNoiNgoai) ketNoi.Dispose();
+        }
+    }
+
+    /// <summary>INSERT/UPDATE/DELETE bất đồng bộ, trả số dòng ảnh hưởng.</summary>
+    public static async Task<int> ThucThiAsync(string sql, params SqlParameter[] thamSo)
+    {
+        bool dungKetNoiNgoai = _ketNoiHienTai.Value != null;
+        SqlConnection ketNoi = dungKetNoiNgoai ? _ketNoiHienTai.Value! : new SqlConnection(ConnectionString);
+        try
+        {
+            if (!dungKetNoiNgoai) await ketNoi.OpenAsync();
+            using var lenh = TaoLenh(sql, ketNoi, thamSo);
+            return await lenh.ExecuteNonQueryAsync();
+        }
+        finally
+        {
+            if (!dungKetNoiNgoai) ketNoi.Dispose();
+        }
+    }
+
+    /// <summary>Truy vấn một giá trị đơn bất đồng bộ.</summary>
+    public static async Task<object> GiaTriDonAsync(string sql, params SqlParameter[] thamSo)
+    {
+        bool dungKetNoiNgoai = _ketNoiHienTai.Value != null;
+        SqlConnection ketNoi = dungKetNoiNgoai ? _ketNoiHienTai.Value! : new SqlConnection(ConnectionString);
+        try
+        {
+            if (!dungKetNoiNgoai) await ketNoi.OpenAsync();
+            using var lenh = TaoLenh(sql, ketNoi, thamSo);
+            return (await lenh.ExecuteScalarAsync())!;
+        }
+        finally
+        {
+            if (!dungKetNoiNgoai) ketNoi.Dispose();
+        }
+    }
+
+    /// <summary>INSERT trả mã vừa sinh, bất đồng bộ.</summary>
+    public static async Task<int> ThucThiTraVeMaAsync(string sql, params SqlParameter[] thamSo)
+    {
+        object ketQua = await GiaTriDonAsync(sql, thamSo);
+        return ketQua == null || ketQua == DBNull.Value ? 0 : Convert.ToInt32(ketQua);
+    }
+
+    /// <summary>
+    /// Chạy một khối nghiệp vụ bất đồng bộ trong giao dịch: Commit khi xong,
+    /// Rollback và ném lại ngoại lệ nếu lỗi. Các repository gọi bên trong tự tham gia.
+    /// </summary>
+    public static async Task ChayGiaoDichAsync(Func<Task> thucHien)
+    {
+        if (_giaoDichHienTai.Value != null)
+        {
+            await thucHien();        // đang trong giao dịch khác: dùng chung, không lồng
+            return;
+        }
+
+        using var ketNoi = new SqlConnection(ConnectionString);
+        await ketNoi.OpenAsync();
+        using var giaoDich = ketNoi.BeginTransaction();
+        _ketNoiHienTai.Value = ketNoi;
+        _giaoDichHienTai.Value = giaoDich;
+        try
+        {
+            await thucHien();
+            giaoDich.Commit();
+        }
+        catch
+        {
+            giaoDich.Rollback();
+            throw;
+        }
+        finally
+        {
+            _ketNoiHienTai.Value = null;
+            _giaoDichHienTai.Value = null;
+        }
     }
 }

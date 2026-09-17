@@ -40,13 +40,110 @@ public partial class BaseForm : Form
         try
         {
             ThietLapGiaoDien();
-            TaiDuLieu();
+        }
+        catch (Exception ex)
+        {
+            BaoLoi("Không thể thiết lập giao diện", ex);
+        }
+
+        // Nạp dữ liệu BẤT ĐỒNG BỘ để không đứng hình giao diện.
+        _ = KhoiDongDuLieuAsync();
+    }
+
+    /// <summary>Nạp dữ liệu nền rồi cập nhật nút; bắt lỗi tập trung.</summary>
+    private async Task KhoiDongDuLieuAsync()
+    {
+        BatDauBan();
+        try
+        {
+            await TaiDuLieuAsync();
             CapNhatTrangThaiNut();
         }
         catch (Exception ex)
         {
             BaoLoi("Không thể tải dữ liệu", ex);
         }
+        finally
+        {
+            KetThucBan();
+        }
+    }
+
+    /// <summary>
+    /// Hook nạp dữ liệu bất đồng bộ. Mặc định chạy <see cref="TaiDuLieu"/> đồng bộ
+    /// (giữ nguyên hành vi các form chưa chuyển đổi); form nào nặng nên override
+    /// và đẩy phần truy vấn xuống nền bằng <see cref="ChayNenAsync{T}"/>.
+    /// </summary>
+    protected virtual Task TaiDuLieuAsync()
+    {
+        TaiDuLieu();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Chạy một hàm nghiệp vụ (không đụng UI) trên thread nền.</summary>
+    protected static Task<T> ChayNenAsync<T>(Func<T> ham) => Task.Run(ham);
+
+    /// <summary>Chạy thao tác không đụng UI trên thread nền.</summary>
+    protected static Task ChayNenAsync(Action thaoTac) => Task.Run(thaoTac);
+
+    /// <summary>
+    /// Chạy nghiệp vụ dưới nền rồi hiển thị kết quả trên luồng UI (toast nếu thành công).
+    /// Trả về true nếu thành công. Không đứng hình cửa sổ trong lúc chờ.
+    /// </summary>
+    protected async Task<bool> ThucHienAsync(Func<KetQua> thaoTac, string thongBaoThanhCong = "")
+    {
+        BatDauBan();
+        try
+        {
+            KetQua ketQua = await Task.Run(thaoTac);
+            return ThucHien(ketQua, thongBaoThanhCong);
+        }
+        catch (Exception ex)
+        {
+            BaoLoi("Thao tác thất bại", ex);
+            return false;
+        }
+        finally
+        {
+            KetThucBan();
+        }
+    }
+
+    // --- Lớp phủ "đang tải" ---
+    private Panel? _lopPhu;
+
+    /// <summary>Phủ một lớp mờ + chữ "Đang tải…" để chặn thao tác lặp trong lúc chờ.</summary>
+    protected void BatDauBan()
+    {
+        if (_lopPhu != null || IsDisposed) return;
+        _lopPhu = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = Color.FromArgb(120, GiaoDien.ManHinhNen),
+            Cursor = Cursors.WaitCursor
+        };
+        var nhan = new Label
+        {
+            Text = "Đang tải…",
+            AutoSize = false,
+            TextAlign = ContentAlignment.MiddleCenter,
+            Dock = DockStyle.Fill,
+            ForeColor = GiaoDien.ChuPhu,
+            Font = GiaoDien.ChuDam,
+            BackColor = Color.Transparent
+        };
+        _lopPhu.Controls.Add(nhan);
+        Controls.Add(_lopPhu);
+        _lopPhu.BringToFront();
+    }
+
+    protected void KetThucBan()
+    {
+        if (_lopPhu == null) return;
+        var phu = _lopPhu;
+        _lopPhu = null;
+        Controls.Remove(phu);
+        phu.Dispose();
     }
 
     /// <summary>Thiết lập dữ liệu cho combobox, trạng thái ban đầu...</summary>
@@ -93,11 +190,15 @@ public partial class BaseForm : Form
     }
 
     // --- Thông báo ---
+    // Thành công dùng TOAST không chặn để thao tác liền mạch;
+    // cảnh báo / lỗi / xác nhận vẫn dùng hộp thoại modal vì cần người dùng chú ý.
     protected void ThanhCong(string noiDung, string tieuDe = "Thành công") =>
-        frmThongBao.HienThi(noiDung, tieuDe,frmThongBao.LoaiThongBao.ThanhCong, this);
+        SportFieldBooking.WinForms.Controls.Toast.Hien(noiDung,
+            SportFieldBooking.WinForms.Controls.Toast.Loai.ThanhCong);
 
     protected void ThongTin(string noiDung, string tieuDe = "Thông báo") =>
-        frmThongBao.HienThi(noiDung, tieuDe, frmThongBao.LoaiThongBao.ThongTin, this);
+        SportFieldBooking.WinForms.Controls.Toast.Hien(noiDung,
+            SportFieldBooking.WinForms.Controls.Toast.Loai.ThongTin);
 
     protected void CanhBao(string noiDung, string tieuDe = "Cảnh báo") =>
         frmThongBao.HienThi(noiDung, tieuDe, frmThongBao.LoaiThongBao.CanhBao, this);

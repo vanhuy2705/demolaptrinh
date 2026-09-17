@@ -193,6 +193,7 @@ public static class GiaoDien
     public static void DoiChuDe()
     {
         ChuyenTheme(!_laThemeToi);
+        CaiDatNguoiDung.DatTheme(_laThemeToi);   // nhớ lựa chọn cho lần chạy sau
         LamMoiTatCa();
     }
 

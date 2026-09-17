@@ -13,9 +13,8 @@ internal static class Program
         ApplicationConfiguration.Initialize();
         Application.SetDefaultFont(new Font(GiaoDien.TenFont, 10F));
 
-        // Chủ đề giao diện: Tối (nền #282828, điểm nhấn tím #A080E0).
-        // Muốn dùng chủ đề Sáng thì đổi thành GiaoDien.ChuyenTheme(false).
-        GiaoDien.ChuyenTheme(toi: true);
+        // Chủ đề giao diện: dùng lại lựa chọn người dùng đã nhớ (mặc định Tối).
+        GiaoDien.ChuyenTheme(toi: CaiDatNguoiDung.LaThemeToi);
 
         KiemTraKetNoiBanDau();
 
