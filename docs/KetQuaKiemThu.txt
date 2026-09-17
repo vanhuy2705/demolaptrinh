@@ -1,0 +1,69 @@
+KET QUA KIEM THU QUY TAC NGHIEP VU - Quan ly cho thue san the thao
+Chay: dotnet run --project tests/SportFieldBooking.KiemThu
+Ngay: 16/09/2026 15:57
+
+╔══════════════════════════════════════════════════════════════════╗
+║   KIỂM THỬ QUY TẮC NGHIỆP VỤ - QUẢN LÝ CHO THUÊ SÂN THỂ THAO     ║
+╚══════════════════════════════════════════════════════════════════╝
+
+── A. Tính thời lượng theo block 30 phút ───────────────────────
+  [ĐẠT] 60 phút (17:00-18:00) = 2 block
+  [ĐẠT] 70 phút (17:00-18:10) = 3 block
+  [ĐẠT] 45 phút (17:00-17:45) = 2 block
+  [ĐẠT] 90 phút = 3 block
+  [ĐẠT] Tiền block: 400.000 x 3 x 30/60 = 600.000
+
+── B. Giá gốc & giảm cuối tuần (tắt khuyến mãi) ────────────────
+  [ĐẠT] Ngày thường 1 giờ = 400.000 đ (không giảm)
+  [ĐẠT] Thứ Bảy 1 giờ = 360.000 đ (giảm cuối tuần 10%)
+  [ĐẠT] Thứ Bảy + GIAM20 = 320.000 đ (voucher thắng cuối tuần)
+  [ĐẠT] KHÔNG cộng dồn: chỉ giảm 80.000 đ (không phải 80.000 + 40.000)
+  [ĐẠT] 17:00-18:10 = 1,5 giờ = 600.000 đ
+
+── C. Khuyến mãi (ưu tiên sau voucher, trước cuối tuần) ────────
+  [ĐẠT] Ngày thường: KM 15% (áp dụng mọi ngày) = 340.000 đ
+  [ĐẠT] Thứ Bảy: KM 25% dành riêng cuối tuần thắng KM 15% = 300.000 đ
+  [ĐẠT] Voucher thắng cả khuyến mãi lẫn cuối tuần (400.000 - 20% = 320.000)
+
+── D. Kiểm tra điều kiện voucher ───────────────────────────────
+  [ĐẠT] Voucher hết hạn bị từ chối
+  [ĐẠT] Voucher hết lượt bị từ chối
+  [ĐẠT] Voucher không tồn tại bị từ chối
+  [ĐẠT] Đơn 200.000 < tối thiểu 300.000 => từ chối GIAM50K
+  [ĐẠT] Đơn 400.000 đủ điều kiện => GIAM50K còn 350.000 đ
+  [ĐẠT] Mã voucher không phân biệt hoa thường
+
+── E. Chống trùng lịch ─────────────────────────────────────────
+  [ĐẠT] 17:30-18:30 trùng booking 17:00-18:00
+  [ĐẠT] 18:00-19:00 KHÔNG trùng (giáp giờ)
+  [ĐẠT] Booking đã hủy được bỏ qua
+  [ĐẠT] Sân khác không bị ảnh hưởng
+  [ĐẠT] Thông báo trùng lịch có tên sân + khung giờ
+
+── F. Kiểm tra thời gian đặt sân ───────────────────────────────
+  [ĐẠT] Giờ kết thúc <= giờ bắt đầu => lỗi
+  [ĐẠT] Thời lượng < 30 phút => lỗi
+  [ĐẠT] Thời lượng > 12 giờ => lỗi
+  [ĐẠT] Ngày đã qua => lỗi
+  [ĐẠT] Khung giờ hợp lệ => chấp nhận
+  [ĐẠT] Ngày trong quá khứ nhưng bỏ qua kiểm tra => chấp nhận
+
+── G. Phân quyền (kiểm tra ở tầng nghiệp vụ) ───────────────────
+  [ĐẠT] Admin có quyền sửa cấu hình
+  [ĐẠT] Nhân viên KHÔNG có quyền sửa cấu hình
+  [ĐẠT] Nhân viên có quyền lập hóa đơn
+  [ĐẠT] Khách hàng KHÔNG có quyền xem hóa đơn tất cả
+  [ĐẠT] Khách hàng có quyền xem hóa đơn của tôi
+  [ĐẠT] Khách hàng KHÔNG có quyền quản lý nhân viên
+
+── H. Cấu hình hệ thống (THAM_SO) ──────────────────────────────
+  [ĐẠT] Giờ mở cửa = 05:00
+  [ĐẠT] Giờ đóng cửa = 23:00
+  [ĐẠT] % giảm cuối tuần = 10
+  [ĐẠT] Block tính tiền = 30 phút
+  [ĐẠT] Thứ Bảy là cuối tuần
+  [ĐẠT] Thứ Hai không phải cuối tuần
+
+──────────────────────────────────────────────────────────────────
+  KẾT QUẢ: 42 đạt / 0 lỗi / 42 tổng số
+──────────────────────────────────────────────────────────────────
