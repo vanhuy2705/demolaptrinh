@@ -47,24 +47,64 @@ public partial class SidebarButton : Button
         Graphics g = pevent.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
 
-        Color mauNen = _kichHoat ? GiaoDien.ThanhBenChon : (_dangTro ? GiaoDien.ThanhBenSang : GiaoDien.ThanhBen);
-        using (var coNen = new SolidBrush(mauNen))
+        // Nền trong suốt để lộ màu thanh bên; chỉ vẽ "viên" khi hover/đang chọn.
+        using (var coNen = new SolidBrush(GiaoDien.ThanhBen))
             g.FillRectangle(coNen, ClientRectangle);
 
+        int bien = 6;
+        var vungVien = new Rectangle(bien, 3, Width - bien * 2, Height - 6);
+        int banKinh = Math.Min(12, vungVien.Height / 2);
+
+        if (_kichHoat || _dangTro)
+        {
+            using var duong = GiaoDien.BoGoc(vungVien, banKinh);
+            if (_kichHoat)
+            {
+                using var nenChon = new LinearGradientBrush(vungVien,
+                    GiaoDien.SangHon(GiaoDien.ThanhBenChon, 10),
+                    GiaoDien.ToiHon(GiaoDien.ThanhBenChon, 12),
+                    LinearGradientMode.Horizontal);
+                g.FillPath(nenChon, duong);
+                using var vienChon = new Pen(Color.FromArgb(60, GiaoDien.Chinh), 1f);
+                g.DrawPath(vienChon, duong);
+            }
+            else
+            {
+                using var coTro = new SolidBrush(GiaoDien.ThanhBenSang);
+                g.FillPath(coTro, duong);
+            }
+        }
+
+        // Vạch chỉ báo màu chủ đạo bo tròn ở mép trái khi đang chọn.
         if (_kichHoat)
-            using (var coVach = new SolidBrush(GiaoDien.Chinh))
-                g.FillRectangle(coVach, 0, 0, 5, Height);
+        {
+            var vach = new Rectangle(0, Height / 2 - 12, 4, 24);
+            using var duongVach = GiaoDien.BoGoc(vach, 2);
+            using var coVach = new SolidBrush(GiaoDien.Chinh);
+            g.FillPath(coVach, duongVach);
+        }
 
-        Color mauChu = _kichHoat ? Color.White : (_laNutDangXuat && _dangTro
-            ? GiaoDien.NguyHiem
-            : GiaoDien.ChuTrenNenDam);
+        bool mauCam = _laNutDangXuat && (_dangTro || _kichHoat);
+        Color mauChu = _kichHoat ? Color.White
+            : mauCam ? GiaoDien.NguyHiem
+            : GiaoDien.ChuTrenNenDam;
 
-        int canhIcon = Math.Min(22, Height - 16);
-        var vungIcon = new Rectangle(16, (Height - canhIcon) / 2, canhIcon, canhIcon);
-        VeBieuTuong.Ve(g, _tenBieuTuong, vungIcon, mauChu);
+        // Icon đặt trong "chip" bo tròn nhuộm màu chủ đạo khi đang chọn.
+        int canhChip = Math.Min(30, Height - 14);
+        var vungChip = new Rectangle(14, (Height - canhChip) / 2, canhChip, canhChip);
+        if (_kichHoat)
+        {
+            using var duongChip = GiaoDien.BoGoc(vungChip, 8);
+            using var coChip = new SolidBrush(Color.FromArgb(55, GiaoDien.Chinh));
+            g.FillPath(coChip, duongChip);
+        }
+        int canhIcon = canhChip - 12;
+        var vungIcon = new Rectangle(vungChip.X + (canhChip - canhIcon) / 2,
+                                     vungChip.Y + (canhChip - canhIcon) / 2, canhIcon, canhIcon);
+        VeBieuTuong.Ve(g, _tenBieuTuong, vungIcon, _kichHoat ? GiaoDien.Chinh : mauChu);
 
-        var vungChu = new Rectangle(vungIcon.Right + 12, 0, Width - vungIcon.Right - 16, Height);
-        TextRenderer.DrawText(g, Text, Font, vungChu, mauChu,
+        var vungChu = new Rectangle(vungChip.Right + 10, 0, Math.Max(10, Width - vungChip.Right - 14), Height);
+        TextRenderer.DrawText(g, Text, _kichHoat ? GiaoDien.ChuVua : Font, vungChu, mauChu,
             TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
     }
 

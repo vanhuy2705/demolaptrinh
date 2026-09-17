@@ -50,73 +50,73 @@ public static class GiaoDien
     // --- Chủ đề Sáng: xanh teal (chủ đạo) + xanh lá (thể thao) + hổ phách (cảnh báo) ---
     private static readonly BangMau MauSang = new()
     {
-        ManHinhNen = Color.FromArgb(245, 247, 250),         // #F5F7FA
+        ManHinhNen = Color.FromArgb(246, 247, 251),         // #F6F7FB - sứ nhạt ánh lam
         BeMat = Color.White,
-        Vien = Color.FromArgb(228, 233, 240),               // #E4E9F0
-        ONhap = Color.White,
-        ONhapVien = Color.FromArgb(203, 213, 225),          // #CBD5E1
+        Vien = Color.FromArgb(230, 233, 242),               // #E6E9F2
+        ONhap = Color.FromArgb(251, 252, 254),              // #FBFCFE
+        ONhapVien = Color.FromArgb(215, 220, 232),          // #D7DCE8
 
-        ThanhBen = Color.FromArgb(15, 23, 42),              // #0F172A - xanh đậm sang trọng
-        ThanhBenSang = Color.FromArgb(30, 41, 59),          // #1E293B
-        ThanhBenChon = Color.FromArgb(47, 111, 237),        // #2F6FED
+        ThanhBen = Color.FromArgb(18, 22, 43),              // #12162B - navy chàm sâu
+        ThanhBenSang = Color.FromArgb(29, 35, 64),          // #1D2340
+        ThanhBenChon = Color.FromArgb(79, 70, 229),         // #4F46E5
 
-        Chinh = Color.FromArgb(47, 111, 237),               // #2F6FED - xanh azure
-        ChinhDam = Color.FromArgb(29, 78, 216),             // #1D4ED8
-        ChinhNhat = Color.FromArgb(232, 240, 254),          // #E8F0FE
+        Chinh = Color.FromArgb(79, 70, 229),                // #4F46E5 - chàm hiện đại
+        ChinhDam = Color.FromArgb(67, 56, 202),             // #4338CA
+        ChinhNhat = Color.FromArgb(238, 240, 255),          // #EEF0FF
         DiemNhan = Color.FromArgb(245, 158, 11),            // #F59E0B
 
-        Chu = Color.FromArgb(15, 23, 42),                   // #0F172A
-        ChuPhu = Color.FromArgb(90, 107, 130),              // #5A6B82
+        Chu = Color.FromArgb(20, 24, 43),                   // #14182B
+        ChuPhu = Color.FromArgb(91, 100, 120),              // #5B6478
         ChuTrenNenDam = Color.White,
 
-        NguyHiem = Color.FromArgb(220, 38, 38),             // #DC2626
-        ThanhCong = Color.FromArgb(22, 163, 74),            // #16A34A
-        CanhBao = Color.FromArgb(217, 119, 6),              // #D97706
-        ThongTin = Color.FromArgb(37, 99, 235),             // #2563EB
-        VienNguyHiem = Color.FromArgb(251, 201, 201),       // #FBC9C9
+        NguyHiem = Color.FromArgb(220, 38, 38),
+        ThanhCong = Color.FromArgb(5, 150, 105),
+        CanhBao = Color.FromArgb(217, 119, 6),
+        ThongTin = Color.FromArgb(37, 99, 235),
+        VienNguyHiem = Color.FromArgb(246, 201, 201),
 
-        LuoiTieuDe = Color.FromArgb(241, 245, 249),         // #F1F5F9
-        LuoiTieuDeChu = Color.FromArgb(51, 65, 85),         // #334155
-        LuoiChan = Color.FromArgb(250, 251, 252),           // #FAFBFC
-        LuoiChon = Color.FromArgb(232, 240, 254),           // #E8F0FE
-        LuoiChonChu = Color.FromArgb(15, 23, 42),
-        LuoiVien = Color.FromArgb(233, 238, 245)            // #E9EEF5
+        LuoiTieuDe = Color.FromArgb(241, 243, 249),
+        LuoiTieuDeChu = Color.FromArgb(58, 67, 88),
+        LuoiChan = Color.FromArgb(250, 251, 253),
+        LuoiChon = Color.FromArgb(236, 239, 254),
+        LuoiChonChu = Color.FromArgb(20, 24, 43),
+        LuoiVien = Color.FromArgb(236, 239, 245)
     };
 
     // --- Chủ đề Tối: nền #282828, thẻ #333333, điểm nhấn tím #A080E0 (mặc định) ---
     private static readonly BangMau MauToi = new()
     {
-        ManHinhNen = Color.FromArgb(17, 22, 29),            // #11161D - xám thanh ánh xanh
-        BeMat = Color.FromArgb(26, 34, 44),                 // #1A222C - thẻ nổi lên
-        Vien = Color.FromArgb(42, 53, 65),                  // #2A3541
-        ONhap = Color.FromArgb(20, 26, 34),                 // #141A22 - ô nhập lõm xuống
-        ONhapVien = Color.FromArgb(51, 64, 79),             // #33404F
+        ManHinhNen = Color.FromArgb(10, 14, 20),            // #0A0E14 - đêm sâu ánh lam
+        BeMat = Color.FromArgb(20, 26, 34),                 // #141A22 - thẻ nổi
+        Vien = Color.FromArgb(34, 43, 54),                  // #222B36
+        ONhap = Color.FromArgb(13, 18, 25),                 // #0D1219 - ô nhập lõm
+        ONhapVien = Color.FromArgb(43, 54, 68),             // #2B3644
 
-        ThanhBen = Color.FromArgb(12, 16, 22),              // #0C1016 - thanh bên sâu nhất
-        ThanhBenSang = Color.FromArgb(27, 36, 48),          // #1B2430
-        ThanhBenChon = Color.FromArgb(22, 50, 78),          // #16324E - xanh azure trầm
+        ThanhBen = Color.FromArgb(6, 9, 13),                // #06090D - thanh bên sâu nhất
+        ThanhBenSang = Color.FromArgb(24, 32, 42),          // #18202A
+        ThanhBenChon = Color.FromArgb(27, 42, 74),          // #1B2A4A - chàm trầm
 
-        Chinh = Color.FromArgb(47, 111, 237),               // #2F6FED - azure chủ đạo
-        ChinhDam = Color.FromArgb(36, 91, 208),             // #245BD0
-        ChinhNhat = Color.FromArgb(22, 35, 58),             // #16233A
-        DiemNhan = Color.FromArgb(245, 165, 36),            // #F5A524
+        Chinh = Color.FromArgb(99, 102, 241),               // #6366F1 - chàm rực
+        ChinhDam = Color.FromArgb(79, 70, 229),             // #4F46E5
+        ChinhNhat = Color.FromArgb(29, 33, 64),             // #1D2140
+        DiemNhan = Color.FromArgb(245, 158, 11),            // #F59E0B
 
-        Chu = Color.FromArgb(231, 237, 245),                // #E7EDF5
-        ChuPhu = Color.FromArgb(139, 154, 173),             // #8B9AAD
-        ChuTrenNenDam = Color.FromArgb(243, 247, 252),      // #F3F7FC
+        Chu = Color.FromArgb(232, 236, 243),                // #E8ECF3
+        ChuPhu = Color.FromArgb(147, 160, 180),             // #93A0B4
+        ChuTrenNenDam = Color.FromArgb(245, 248, 252),      // #F5F8FC
 
-        NguyHiem = Color.FromArgb(248, 113, 113),           // #F87171
-        ThanhCong = Color.FromArgb(52, 211, 153),           // #34D399
-        CanhBao = Color.FromArgb(251, 191, 36),             // #FBBF24
-        ThongTin = Color.FromArgb(96, 165, 250),            // #60A5FA
-        VienNguyHiem = Color.FromArgb(90, 42, 46),          // #5A2A2E
+        NguyHiem = Color.FromArgb(248, 113, 113),
+        ThanhCong = Color.FromArgb(52, 211, 153),
+        CanhBao = Color.FromArgb(251, 191, 36),
+        ThongTin = Color.FromArgb(96, 165, 250),
+        VienNguyHiem = Color.FromArgb(74, 36, 40),
 
-        LuoiTieuDe = Color.FromArgb(20, 26, 34),            // #141A22
-        LuoiTieuDeChu = Color.FromArgb(231, 237, 245),      // #E7EDF5
-        LuoiChan = Color.FromArgb(31, 40, 51),              // #1F2833
-        LuoiChon = Color.FromArgb(28, 58, 94),              // #1C3A5E
+        LuoiTieuDe = Color.FromArgb(16, 22, 30),
+        LuoiTieuDeChu = Color.FromArgb(221, 228, 238),
+        LuoiChan = Color.FromArgb(24, 32, 42),
+        LuoiChon = Color.FromArgb(35, 44, 85),
         LuoiChonChu = Color.White,
-        LuoiVien = Color.FromArgb(37, 47, 59)               // #252F3B
+        LuoiVien = Color.FromArgb(30, 40, 51)
     };
 
     private static BangMau _mau = MauToi;      // Chủ đề Tối là mặc định
@@ -169,11 +169,13 @@ public static class GiaoDien
     public const string TenFont = "Segoe UI";
 
     public static Font ChuNho => new(TenFont, 9F);
-    public static Font ChuThuong => new(TenFont, 10F);
+    public static Font ChuThuong => new(TenFont, 9.75F);
+    public static Font ChuVua => new(TenFont, 10F, FontStyle.Bold);      // nhãn nút vừa
     public static Font ChuDam => new(TenFont, 10F, FontStyle.Bold);
-    public static Font ChuLon => new(TenFont, 13F, FontStyle.Bold);
-    public static Font TieuDe => new(TenFont, 17F, FontStyle.Bold);
-    public static Font TieuDeLon => new(TenFont, 22F, FontStyle.Bold);
+    public static Font ChuLon => new(TenFont, 13.5F, FontStyle.Bold);
+    public static Font TieuDe => new(TenFont, 17.5F, FontStyle.Bold);
+    public static Font TieuDeLon => new(TenFont, 23F, FontStyle.Bold);
+    public static Font SoLon => new(TenFont, 20F, FontStyle.Bold);       // số KPI
 
     /// <summary>Áp dụng font/màu nền chuẩn cho một Form (và toàn bộ control con, đệ quy).</summary>
     public static void ApDung(Form form)
@@ -210,6 +212,26 @@ public static class GiaoDien
         }
     }
 
+    /// <summary>Pha màu sáng hơn (phanTram 0-100).</summary>
+    public static Color SangHon(Color mau, int phanTram)
+    {
+        int t = Math.Clamp(phanTram, 0, 100);
+        return Color.FromArgb(mau.A,
+            mau.R + (255 - mau.R) * t / 100,
+            mau.G + (255 - mau.G) * t / 100,
+            mau.B + (255 - mau.B) * t / 100);
+    }
+
+    /// <summary>Pha màu tối hơn (phanTram 0-100).</summary>
+    public static Color ToiHon(Color mau, int phanTram)
+    {
+        int t = Math.Clamp(phanTram, 0, 100);
+        return Color.FromArgb(mau.A,
+            mau.R * (100 - t) / 100,
+            mau.G * (100 - t) / 100,
+            mau.B * (100 - t) / 100);
+    }
+
     /// <summary>Tạo panel bo góc (dùng cho thẻ KPI, khung nhập liệu...).</summary>
     public static GraphicsPath BoGoc(Rectangle vung, int banKinh)
     {
@@ -223,6 +245,26 @@ public static class GiaoDien
         return duong;
     }
 
+    /// <summary>Cắt nút thành hình bo tròn (Region) và giữ bo khi đổi kích thước.</summary>
+    private static void BoGocNut(Button nut, int banKinh = 10)
+    {
+        nut.Resize -= NutDoiKichThuoc;
+        nut.Resize += NutDoiKichThuoc;
+        nut.Tag = "RESPONSIVE_RADIUS|" + banKinh;
+        NutDoiKichThuoc(nut, EventArgs.Empty);
+    }
+
+    private static void NutDoiKichThuoc(object? sender, EventArgs e)
+    {
+        if (sender is not Button nut) return;
+        int banKinh = 10;
+        if (nut.Tag is string t && t.StartsWith("RESPONSIVE_RADIUS|", StringComparison.Ordinal)
+            && int.TryParse(t.AsSpan(18), out int r)) banKinh = r;
+        nut.Region = nut.ClientSize.Width > 2 && nut.ClientSize.Height > 2
+            ? new Region(BoGoc(new Rectangle(0, 0, nut.ClientSize.Width, nut.ClientSize.Height), banKinh))
+            : null;
+    }
+
     /// <summary>Nút chính (thao tác tạo/lưu/thanh toán).</summary>
     public static void DangNutChinh(Button nut)
     {
@@ -230,12 +272,14 @@ public static class GiaoDien
         nut.FlatAppearance.BorderSize = 0;
         nut.BackColor = Chinh;
         nut.ForeColor = ChuTrenNenDam;
-        nut.Font = ChuDam;
+        nut.Font = ChuVua;
         nut.Cursor = Cursors.Hand;
-        nut.Height = 38;
-        nut.MinimumSize = new Size(96, 34);
-        nut.Padding = new Padding(10, 0, 10, 0);
+        nut.Height = 40;
+        nut.MinimumSize = new Size(96, 36);
+        nut.Padding = new Padding(14, 0, 14, 0);
         nut.FlatAppearance.MouseOverBackColor = ChinhDam;
+        nut.FlatAppearance.MouseDownBackColor = ToiHon(ChinhDam, 10);
+        BoGocNut(nut, 10);
     }
 
     /// <summary>Nút phụ (hủy, làm mới, xuất...).</summary>
@@ -243,15 +287,17 @@ public static class GiaoDien
     {
         nut.FlatStyle = FlatStyle.Flat;
         nut.FlatAppearance.BorderSize = 1;
-        nut.FlatAppearance.BorderColor = Vien;
+        nut.FlatAppearance.BorderColor = ONhapVien;
         nut.BackColor = BeMat;
         nut.ForeColor = Chu;
-        nut.Font = ChuDam;
+        nut.Font = ChuVua;
         nut.Cursor = Cursors.Hand;
-        nut.Height = 38;
-        nut.MinimumSize = new Size(96, 34);
-        nut.Padding = new Padding(10, 0, 10, 0);
-        nut.FlatAppearance.MouseOverBackColor = Vien;
+        nut.Height = 40;
+        nut.MinimumSize = new Size(96, 36);
+        nut.Padding = new Padding(14, 0, 14, 0);
+        nut.FlatAppearance.MouseOverBackColor = LaThemeToi ? SangHon(BeMat, 7) : ToiHon(BeMat, 4);
+        nut.FlatAppearance.MouseDownBackColor = LaThemeToi ? SangHon(BeMat, 12) : ToiHon(BeMat, 8);
+        BoGocNut(nut, 10);
     }
 
     /// <summary>Nút nguy hiểm (xóa, hủy booking...).</summary>
@@ -302,6 +348,45 @@ public static class GiaoDien
         tieuDe.ForeColor = Chu;
         tieuDe.Font = TieuDe;
         tieuDe.AutoSize = true;
+    }
+
+    /// <summary>
+    /// Vẽ nền gradient dọc + quầng sáng màu chủ đạo + vài nét chéo mờ cho một panel
+    /// (dùng cho panel thương hiệu màn đăng nhập / đầu trang). Gắn một lần, tự vẽ lại.
+    /// </summary>
+    public static void TrangTriDoc(Panel p)
+    {
+        if (p == null || Equals(p.Tag, "GRADIENT_DOC")) return;
+        p.Tag = "GRADIENT_DOC";
+        p.Paint += (_, e) =>
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            var r = p.ClientRectangle;
+            if (r.Width <= 0 || r.Height <= 0) return;
+
+            using (var nen = new LinearGradientBrush(r,
+                       SangHon(ThanhBen, 8), ToiHon(ThanhBen, 38), LinearGradientMode.Vertical))
+                g.FillRectangle(nen, r);
+
+            // Quầng sáng màu chủ đạo lệch về góc trên-trái.
+            int cx = r.Width / 2, cy = (int)(r.Height * 0.30);
+            using (var gp = new GraphicsPath())
+            {
+                gp.AddEllipse(cx - 260, cy - 260, 520, 520);
+                using var pgb = new PathGradientBrush(gp);
+                pgb.CenterColor = Color.FromArgb(64, Chinh);
+                pgb.SurroundColors = new[] { Color.FromArgb(0, Chinh) };
+                g.FillPath(pgb, gp);
+            }
+
+            // Vài nét chéo mờ gợi chuyển động (thể thao).
+            using (var but = new Pen(Color.FromArgb(20, ChuTrenNenDam), 1.2f))
+            {
+                g.DrawLine(but, r.Width - 150, r.Height - 40, r.Width - 30, r.Height - 160);
+                g.DrawLine(but, r.Width - 110, r.Height - 30, r.Width - 20, r.Height - 120);
+            }
+        };
     }
 
     /// <summary>Màu tương ứng với trạng thái sân/booking/hóa đơn.</summary>

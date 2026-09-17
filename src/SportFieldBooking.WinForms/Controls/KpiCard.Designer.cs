@@ -69,7 +69,7 @@ partial class KpiCard
 
         // lblGiaTri
         lblGiaTri.AutoSize = true;
-        lblGiaTri.Font = new System.Drawing.Font(GiaoDien.TenFont, 19F, System.Drawing.FontStyle.Bold);
+        lblGiaTri.Font = GiaoDien.SoLon;
         lblGiaTri.ForeColor = GiaoDien.Chu;
         lblGiaTri.Location = new System.Drawing.Point(68, 40);
         lblGiaTri.Name = "lblGiaTri";

@@ -51,15 +51,35 @@ public partial class RoundedPanel : Panel
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
-        if (_doDayVien <= 0 || _banKinh <= 0) return;
+        Graphics g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        if (_banKinh <= 0) return;
 
-        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
         Rectangle vung = ClientRectangle;
         vung.Width -= 1;
         vung.Height -= 1;
         using var duong = GiaoDien.BoGoc(vung, _banKinh);
-        using var but = new Pen(_mauVien, _doDayVien);
-        e.Graphics.DrawPath(but, duong);
+
+        // Nền gradient dọc rất nhẹ: sáng hơn ở đỉnh -> tạo cảm giác thẻ nổi, có chiều sâu.
+        using (var nen = new LinearGradientBrush(ClientRectangle,
+                   GiaoDien.SangHon(BackColor, GiaoDien.LaThemeToi ? 5 : 2),
+                   GiaoDien.ToiHon(BackColor, GiaoDien.LaThemeToi ? 3 : 1),
+                   LinearGradientMode.Vertical))
+            g.FillPath(nen, duong);
+
+        // Ánh sáng viền trong ở mép trên (giống nguồn sáng từ trên chiếu xuống).
+        if (ClientRectangle.Height > 6)
+        {
+            using var butSang = new Pen(Color.FromArgb(GiaoDien.LaThemeToi ? 26 : 60, Color.White), 1.4f);
+            using var duongSang = GiaoDien.BoGoc(new Rectangle(1, 1, ClientRectangle.Width - 3, ClientRectangle.Height - 3), Math.Max(2, _banKinh - 1));
+            g.SetClip(duongSang);
+            g.DrawPath(butSang, duongSang);
+            g.ResetClip();
+        }
+
+        if (_doDayVien > 0)
+            using (var but = new Pen(_mauVien, _doDayVien))
+                g.DrawPath(but, duong);
     }
 
     private void CapNhatVung()

@@ -303,6 +303,7 @@ public static class ResponsiveLayout
         left.Dock = DockStyle.Left;
         left.Width = compact ? Math.Max(230, (int)(w * 0.34)) : Math.Min(420, Math.Max(300, (int)(w * 0.42)));
         right.Dock = DockStyle.Fill;
+        GiaoDien.TrangTriDoc(left);          // nền gradient + quầng sáng thương hiệu
 
         box.Width = Math.Min(400, Math.Max(320, right.ClientSize.Width - 40));
         box.Height = Math.Min(360, Math.Max(340, right.ClientSize.Height - 50));
