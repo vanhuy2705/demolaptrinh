@@ -68,7 +68,20 @@ public class HoaDonService
             if (hoaDonCu != null && hoaDonCu.TrangThai == TrangThaiHoaDon.DaThanhToan && !tinhLai)
                 return KetQua<HoaDon>.Tot(hoaDonCu, "Booking này đã có hóa đơn thanh toán.");
 
-            KetQua<ChiTietTien> ketQuaTien = _tinhTienService.TinhTienChoBooking(datSan, maVoucher);
+            // Voucher của booking: người lập không nhập mã thì lấy mã đã lưu lúc đặt sân,
+            // khách không phải đọc lại mã và nhân viên không thể "quên" làm mất ưu đãi.
+            string voucherTuBooking = null;
+            if (string.IsNullOrWhiteSpace(maVoucher) && datSan.MaVoucher != null)
+                voucherTuBooking = _voucherRepo.LayTheoMa(datSan.MaVoucher.Value)?.MaCode;
+
+            KetQua<ChiTietTien> ketQuaTien = _tinhTienService.TinhTienChoBooking(datSan,
+                string.IsNullOrWhiteSpace(maVoucher) ? voucherTuBooking ?? "" : maVoucher);
+
+            // Voucher lưu trên booking có thể đã hết hạn/hết lượt vào lúc thu tiền:
+            // khi đó lập hóa đơn theo giá hiện hành chứ không chặn nghiệp vụ thu tiền.
+            if (!ketQuaTien.ThanhCong && string.IsNullOrWhiteSpace(maVoucher) && voucherTuBooking != null)
+                ketQuaTien = _tinhTienService.TinhTienChoBooking(datSan, "");
+
             if (!ketQuaTien.ThanhCong) return KetQua<HoaDon>.Loi(ketQuaTien.ThongBao);
             ChiTietTien tien = ketQuaTien.DuLieu;
 

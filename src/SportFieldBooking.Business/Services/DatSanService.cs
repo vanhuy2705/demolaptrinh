@@ -89,11 +89,34 @@ public class DatSanService
                 TienSan = ketQuaTien.DuLieu.TienGoc,
                 TrangThai = TrangThaiDatSan.DaDat,
                 GhiChu = ghiChu ?? "",
-                MaNguoiTao = PhienLamViec.MaTK
+                MaNguoiTao = PhienLamViec.MaTK,
+                // Giữ lại voucher đã kiểm tra hợp lệ. Trước đây thông tin này bị vứt bỏ:
+                // booking chỉ lưu giá gốc nên số tiền báo cho khách (đã giảm) khác số
+                // được lưu, và sang bước lập hóa đơn phải chọn lại voucher từ đầu.
+                MaVoucher = ketQuaTien.DuLieu.VoucherDuocDung?.MaVoucher,
+                MaVoucherCode = ketQuaTien.DuLieu.VoucherDuocDung?.MaCode ?? ""
             };
 
-            datSan.MaDat = _datSanRepo.Them(datSan);
-            return KetQua<DatSan>.Tot(datSan, $"Đặt sân thành công (mã #{datSan.MaDat}).");
+            // CHỐNG ĐẶT TRÙNG ĐỒNG THỜI: kiểm tra lịch trống và ghi booking phải nằm trong
+            // CÙNG một giao dịch, trong đó câu kiểm tra khoá dải bản ghi (UPDLOCK+HOLDLOCK).
+            // Để rời nhau như trước thì hai người bấm "Đặt sân" cùng lúc đều thấy trống
+            // và cả hai cùng ghi thành công.
+            KetQua<DatSan> ketQua = null;
+            Data.Helpers.DbHelper.ChayGiaoDich(() =>
+            {
+                List<DatSan> trungKhoa = _datSanRepo.LayTrungLich(maSan, ngayDat.Date,
+                    gioBatDau, gioKetThuc, null, khoaBang: true);
+                if (trungKhoa.Count > 0)
+                {
+                    ketQua = KetQua<DatSan>.Loi(TaoThongBaoTrungLich(trungKhoa));
+                    return;                 // không ghi gì; giao dịch commit rỗng, khoá được nhả
+                }
+
+                datSan.MaDat = _datSanRepo.Them(datSan);
+                ketQua = KetQua<DatSan>.Tot(datSan, $"Đặt sân thành công (mã #{datSan.MaDat}).");
+            });
+
+            return ketQua ?? KetQua<DatSan>.Loi("Không thể đặt sân.");
         }
         catch (Exception ex)
         {
@@ -132,8 +155,29 @@ public class DatSanService
             if (!ketQuaTien.ThanhCong) return KetQua<DatSan>.Loi(ketQuaTien.ThongBao);
 
             datSan.TienSan = ketQuaTien.DuLieu.TienGoc;
-            _datSanRepo.CapNhat(datSan);
-            return KetQua<DatSan>.Tot(datSan, "Cập nhật booking thành công.");
+
+            // Voucher: ưu tiên mã vừa nhập; không nhập thì GIỮ voucher đang lưu trên booking
+            // (màn hình chi tiết không có ô nhập voucher, không được làm khách mất ưu đãi).
+            datSan.MaVoucher = ketQuaTien.DuLieu.VoucherDuocDung?.MaVoucher ?? datSan.MaVoucher ?? cu.MaVoucher;
+            datSan.MaVoucherCode = ketQuaTien.DuLieu.VoucherDuocDung?.MaCode ?? datSan.MaVoucherCode ?? cu.MaVoucherCode;
+
+            // Giống lúc đặt mới: kiểm tra trùng + ghi trong một giao dịch có khoá.
+            KetQua<DatSan> ketQua = null;
+            Data.Helpers.DbHelper.ChayGiaoDich(() =>
+            {
+                List<DatSan> trungKhoa = _datSanRepo.LayTrungLich(datSan.MaSan, datSan.NgayDat.Date,
+                    datSan.GioBatDau, datSan.GioKetThuc, datSan.MaDat, khoaBang: true);
+                if (trungKhoa.Count > 0)
+                {
+                    ketQua = KetQua<DatSan>.Loi(TaoThongBaoTrungLich(trungKhoa));
+                    return;
+                }
+
+                _datSanRepo.CapNhat(datSan);
+                ketQua = KetQua<DatSan>.Tot(datSan, "Cập nhật booking thành công.");
+            });
+
+            return ketQua ?? KetQua<DatSan>.Loi("Không thể cập nhật booking.");
         }
         catch (Exception ex)
         {

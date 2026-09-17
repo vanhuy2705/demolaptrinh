@@ -2,6 +2,7 @@ using SportFieldBooking.Business.Common;
 using SportFieldBooking.Business.Services;
 using SportFieldBooking.Core.Common;
 using SportFieldBooking.Core.Entities;
+using SportFieldBooking.Data.Helpers;
 
 namespace SportFieldBooking.KiemThu;
 
@@ -19,8 +20,12 @@ internal static class Program
     private static DateTime _ngayThuBay;   // Thứ Bảy tới (cuối tuần)
 
     private static KhoKhuyenMaiGia _khoKhuyenMai;
+    private static KhoDatSanGia _khoDatSan;
+    private static KhoVoucherGia _khoVoucher;
+    private static KhoHoaDonGia _khoHoaDon;
     private static TinhTienService _tinhTien;
     private static DatSanService _datSan;
+    private static HoaDonService _hoaDon;
     private static CauHinhService _cauHinh;
     private static VoucherService _voucher;
 
@@ -144,6 +149,56 @@ internal static class Program
         Kiem("Thứ Bảy là cuối tuần", KhuyenMaiService.LaCuoiTuan(_ngayThuBay));
         Kiem("Thứ Hai không phải cuối tuần", !KhuyenMaiService.LaCuoiTuan(_ngayThuong));
 
+        Nhom("I. Đặt sân: voucher đi theo booking & chống đặt trùng đồng thời");
+        BatKhuyenMai(false);
+        PhienLamViec.DangNhap(new TaiKhoan
+        {
+            MaTK = 1, TenDangNhap = "admin", HoTen = "Quản trị viên", VaiTro = VaiTro.Admin
+        });
+
+        int maGiam20 = _khoVoucher.LayTheoMaCode("GIAM20").MaVoucher;
+        int maHetLuot = _khoVoucher.LayTheoMaCode("HETLUOT").MaVoucher;
+        int soBooking = _khoDatSan.DuLieu.Count;
+        int soLanKhoa = _khoDatSan.SoLanDocKhoa;
+
+        KetQua<DatSan> datMoi = _datSan.TaoDatSan(1, MaSanA1, _ngayThuong, TS(20, 0), TS(21, 0), "", "GIAM20");
+        Kiem("Đặt sân 20:00-21:00 kèm GIAM20 => thành công", datMoi.ThanhCong);
+        Kiem("Booking LƯU voucher (trước đây bị mất)",
+            datMoi.ThanhCong && datMoi.DuLieu.MaVoucher == maGiam20);
+        Kiem("Booking lưu giá gốc 400.000 đ, giảm giá tính ở hóa đơn",
+            datMoi.ThanhCong && datMoi.DuLieu.TienSan == 400000m);
+        Kiem("Bước kiểm tra trùng trước khi ghi có ĐỌC KHOÁ (chống race)",
+            _khoDatSan.SoLanDocKhoa > soLanKhoa);
+
+        KetQua<DatSan> datTrung = _datSan.TaoDatSan(2, MaSanA1, _ngayThuong, TS(20, 30), TS(21, 30));
+        Kiem("Đặt chồng 20:30-21:30 cùng sân => bị từ chối", !datTrung.ThanhCong);
+        Kiem("Không sinh booking mới khi trùng lịch", _khoDatSan.DuLieu.Count == soBooking + 1);
+
+        KetQua<HoaDon> hd = _hoaDon.LapHoaDon(datMoi.DuLieu.MaDat, "");
+        Kiem("Lập hóa đơn KHÔNG cần nhập lại voucher => thành công", hd.ThanhCong);
+        Kiem("Hóa đơn tự dùng voucher của booking: 400.000 - 20% = 320.000 đ",
+            hd.ThanhCong && hd.DuLieu.TongTien == 320000m && hd.DuLieu.LoaiGiamGia == LoaiGiamGia.Voucher);
+        Kiem("Hóa đơn ghi đúng MaVoucher của booking", hd.ThanhCong && hd.DuLieu.MaVoucher == maGiam20);
+
+        DatSan banSua = _khoDatSan.LayTheoMa(datMoi.DuLieu.MaDat);
+        banSua.GioKetThuc = TS(21, 30);
+        banSua.GhiChu = "Đổi giờ đá thêm 30 phút";
+        KetQua<DatSan> kqSua = _datSan.CapNhatDatSan(banSua);
+        Kiem("Sửa booking (không nhập voucher) => thành công", kqSua.ThanhCong);
+        Kiem("Sửa booking vẫn GIỮ voucher cũ, khách không mất ưu đãi",
+            kqSua.ThanhCong && _khoDatSan.LayTheoMa(banSua.MaDat).MaVoucher == maGiam20);
+
+        // Voucher hết lượt vào lúc thu tiền: không được chặn nghiệp vụ lập hóa đơn.
+        KetQua<DatSan> datHetLuot = _datSan.TaoDatSan(2, MaSanA1, _ngayThuong, TS(22, 0), TS(23, 0));
+        Kiem("Đặt sân 22:00-23:00 không voucher => thành công", datHetLuot.ThanhCong);
+        _khoDatSan.LayTheoMa(datHetLuot.DuLieu.MaDat).MaVoucher = maHetLuot;   // voucher sau đó hết lượt
+        KetQua<HoaDon> hdHetLuot = _hoaDon.LapHoaDon(datHetLuot.DuLieu.MaDat, "");
+        Kiem("Voucher của booking đã hết lượt => vẫn lập được hóa đơn (không chặn thu tiền)",
+            hdHetLuot.ThanhCong);
+        Kiem("...và tính theo giá hiện hành 400.000 đ, không giảm",
+            hdHetLuot.ThanhCong && hdHetLuot.DuLieu.TongTien == 400000m
+            && hdHetLuot.DuLieu.LoaiGiamGia == LoaiGiamGia.Khong);
+
         // --- Tổng kết ---
         Console.WriteLine();
         Console.WriteLine(new string('─', 66));
@@ -226,10 +281,21 @@ internal static class Program
         khoKhachHang.Them(new KhachHang { MaKH = 1, HoTen = "Nguyễn Văn A", SDT = "0900000001" });
         khoKhachHang.Them(new KhachHang { MaKH = 2, HoTen = "Trần Thị B", SDT = "0900000002" });
 
+        _khoVoucher = khoVoucher;
+        _khoDatSan = khoDatSan;
+        _khoHoaDon = new KhoHoaDonGia();
+
+        // Bộ kiểm thử chạy hoàn toàn bằng kho dữ liệu giả trong bộ nhớ, không có
+        // SQL Server: thay cơ chế giao dịch bằng cách chạy thẳng khối lệnh.
+        // (DbHelper.GiaoDichWrapper là điểm nối dành riêng cho kiểm thử.)
+        DbHelper.GiaoDichWrapper = thucHien => thucHien();
+        DbHelper.GiaoDichWrapperAsync = thucHien => thucHien();
+
         _voucher = new VoucherService(khoVoucher, khoSuDung);
         var khuyenMaiService = new KhuyenMaiService(khoKhuyenMai);
         _tinhTien = new TinhTienService(khoSan, khoThamSo, _voucher, khuyenMaiService);
         _datSan = new DatSanService(khoDatSan, khoSan, khoKhachHang, _tinhTien);
+        _hoaDon = new HoaDonService(_khoHoaDon, khoDatSan, khoSan, khoVoucher, khoSuDung, _tinhTien);
         _cauHinh = new CauHinhService(khoThamSo);
     }
 

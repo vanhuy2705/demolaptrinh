@@ -17,7 +17,15 @@ public class DatSan
     public DateTime NgayTao { get; set; }
     public int? MaNguoiTao { get; set; }
 
+    /// <summary>
+    /// Voucher khách chọn lúc đặt sân (FK -> VOUCHER). Trước đây giá trị này bị mất:
+    /// booking chỉ lưu giá gốc nên sang bước lập hóa đơn phải chọn lại voucher.
+    /// </summary>
+    public int? MaVoucher { get; set; }
+
     // --- Thuộc tính hiển thị (join từ bảng khác, không ánh xạ trực tiếp) ---
+    /// <summary>Mã voucher dạng chuỗi (VD: "KM10"), để trống nếu không dùng.</summary>
+    public string MaVoucherCode { get; set; } = "";
     public string TenKH { get; set; } = "";
     public string SDT { get; set; } = "";
     public string TenSan { get; set; } = "";

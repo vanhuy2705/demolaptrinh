@@ -116,18 +116,37 @@ public class KhoDatSanGia : IDatSanRepository
     public List<DatSan> LaySapDienRa(int soLuong) => DuLieu.Take(soLuong).ToList();
     public DatSan LayTheoMa(int maDat) => DuLieu.FirstOrDefault(d => d.MaDat == maDat);
 
+    /// <summary>Số lần nghiệp vụ yêu cầu đọc CÓ KHOÁ (UPDLOCK+HOLDLOCK) - dùng để
+    /// khẳng định bước kiểm tra trùng trước khi ghi luôn đi kèm khoá chống race.</summary>
+    public int SoLanDocKhoa { get; private set; }
+
     /// <summary>Trùng lịch = cùng sân, cùng ngày, giao nhau về khoảng giờ, bỏ qua booking đã hủy.</summary>
-    public List<DatSan> LayTrungLich(int maSan, DateTime ngay, TimeSpan gioBatDau, TimeSpan gioKetThuc, int? maDatLoaiTru = null) =>
-        DuLieu.Where(d => d.MaSan == maSan
+    public List<DatSan> LayTrungLich(int maSan, DateTime ngay, TimeSpan gioBatDau, TimeSpan gioKetThuc,
+        int? maDatLoaiTru = null, bool khoaBang = false)
+    {
+        if (khoaBang) SoLanDocKhoa++;
+        return DuLieu.Where(d => d.MaSan == maSan
                           && d.NgayDat.Date == ngay.Date
                           && d.TrangThai != TrangThaiDatSan.DaHuy
                           && d.GioBatDau < gioKetThuc
                           && d.GioKetThuc > gioBatDau
                           && (maDatLoaiTru == null || d.MaDat != maDatLoaiTru))
-              .ToList();
+                  .ToList();
+    }
 
     public int Them(DatSan datSan) { datSan.MaDat = DuLieu.Count + 1; DuLieu.Add(datSan); return datSan.MaDat; }
-    public int CapNhat(DatSan datSan) => 1;
+
+    public int CapNhat(DatSan datSan)
+    {
+        DatSan cu = LayTheoMa(datSan.MaDat);
+        if (cu == null) return 0;
+        if (ReferenceEquals(cu, datSan)) return 1;
+        cu.MaKH = datSan.MaKH; cu.MaSan = datSan.MaSan; cu.NgayDat = datSan.NgayDat;
+        cu.GioBatDau = datSan.GioBatDau; cu.GioKetThuc = datSan.GioKetThuc;
+        cu.TienSan = datSan.TienSan; cu.TrangThai = datSan.TrangThai; cu.GhiChu = datSan.GhiChu;
+        cu.MaVoucher = datSan.MaVoucher;
+        return 1;
+    }
     public int CapNhatTrangThai(int maDat, string trangThai)
     {
         DatSan d = LayTheoMa(maDat);
@@ -157,4 +176,41 @@ public class KhoKhachHangGia : IKhachHangRepository
         if (k != null) k.MaTK = maTK;
         return 1;
     }
+}
+
+/// <summary>Hóa đơn trong bộ nhớ - đủ để kiểm thử luồng lập hóa đơn từ booking.</summary>
+public class KhoHoaDonGia : IHoaDonRepository
+{
+    public List<HoaDon> DuLieu { get; } = new();
+
+    public List<HoaDon> LayTatCa(string tuKhoa = "") => DuLieu;
+
+    public List<HoaDon> LayTheoKhoang(DateTime tuNgay, DateTime denNgay, string trangThai = null) =>
+        DuLieu.Where(h => h.NgayLap.Date >= tuNgay.Date && h.NgayLap.Date <= denNgay.Date
+                          && (trangThai == null || h.TrangThai == trangThai)).ToList();
+
+    public List<HoaDon> LayTheoKhachHang(int maKH) => DuLieu;
+    public HoaDon LayTheoMa(int maHD) => DuLieu.FirstOrDefault(h => h.MaHD == maHD);
+    public HoaDon LayTheoMaDat(int maDat) => DuLieu.FirstOrDefault(h => h.MaDat == maDat);
+
+    public int Them(HoaDon hoaDon)
+    {
+        hoaDon.MaHD = DuLieu.Count + 1;
+        DuLieu.Add(hoaDon);
+        return hoaDon.MaHD;
+    }
+
+    public int CapNhat(HoaDon hoaDon) => LayTheoMa(hoaDon.MaHD) == null ? 0 : 1;
+
+    public int CapNhatTrangThai(int maHD, string trangThai)
+    {
+        HoaDon h = LayTheoMa(maHD);
+        if (h != null) h.TrangThai = trangThai;
+        return 1;
+    }
+
+    public int Xoa(int maHD) => DuLieu.RemoveAll(h => h.MaHD == maHD);
+
+    public decimal TongDoanhThu(DateTime tuNgay, DateTime denNgay) =>
+        LayTheoKhoang(tuNgay, denNgay).Sum(h => h.TongTien);
 }

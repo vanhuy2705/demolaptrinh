@@ -168,6 +168,8 @@ CREATE TABLE DAT_SAN (
     GhiChu      NVARCHAR(255) NULL,
     NgayTao     DATETIME      NOT NULL DEFAULT GETDATE(),
     MaNguoiTao  INT           NULL,               -- FK -> TAIKHOAN: Admin hoặc Nhân viên
+    MaVoucher   INT           NULL,               -- voucher khách chọn lúc đặt; FK khai báo ở mục 6
+                                                  -- (bảng VOUCHER được tạo sau DAT_SAN)
     CONSTRAINT CK_DAT_SAN_Gio      CHECK (GioKetThuc > GioBatDau),
     CONSTRAINT CK_DAT_SAN_Tien     CHECK (TienSan >= 0),
     CONSTRAINT CK_DAT_SAN_Ngay     CHECK (NgayDat >= '2020-01-01'),
@@ -181,6 +183,7 @@ CREATE INDEX IX_DAT_SAN_Ngay      ON DAT_SAN(NgayDat, MaSan);
 CREATE INDEX IX_DAT_SAN_KH        ON DAT_SAN(MaKH);
 CREATE INDEX IX_DAT_SAN_TrangThai ON DAT_SAN(TrangThai, NgayDat);
 CREATE INDEX IX_DAT_SAN_NguoiTao  ON DAT_SAN(MaNguoiTao);
+CREATE INDEX IX_DAT_SAN_Voucher   ON DAT_SAN(MaVoucher);
 GO
 
 /* ===================================================================== */
@@ -209,6 +212,13 @@ CREATE TABLE VOUCHER (
 GO
 
 CREATE INDEX IX_VOUCHER_HanDung ON VOUCHER(TrangThai, NgayBatDau, NgayKetThuc);
+GO
+
+-- FK cho cột DAT_SAN.MaVoucher (đặt ở đây vì DAT_SAN được tạo trước VOUCHER).
+-- NULL = booking không dùng voucher; voucher chỉ thật sự bị trừ lượt khi THANH TOÁN
+-- (xem bảng SU_DUNG_VOUCHER), nên hủy booking không cần hoàn lượt.
+ALTER TABLE DAT_SAN
+    ADD CONSTRAINT FK_DAT_SAN_VOUCHER FOREIGN KEY (MaVoucher) REFERENCES VOUCHER(MaVoucher);
 GO
 
 CREATE TABLE SU_DUNG_VOUCHER (

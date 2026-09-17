@@ -17,6 +17,17 @@ public static class DbHelper
     private static readonly AsyncLocal<SqlConnection?> _ketNoiHienTai = new();
     private static readonly AsyncLocal<SqlTransaction?> _giaoDichHienTai = new();
 
+    /// <summary>
+    /// ĐIỂM NỐI CHO KIỂM THỬ. Khi được gán (ví dụ `a => a()`), ChayGiaoDich chạy thẳng
+    /// khối lệnh thay vì mở kết nối + giao dịch SQL thật - nhờ vậy bộ kiểm thử dùng kho
+    /// dữ liệu giả vẫn chạy được các nghiệp vụ có giao dịch mà không cần SQL Server.
+    /// Ứng dụng thật KHÔNG gán giá trị này (giữ null).
+    /// </summary>
+    public static Action<Action> GiaoDichWrapper { get; set; }
+
+    /// <summary>Bản async của <see cref="GiaoDichWrapper"/>.</summary>
+    public static Func<Func<Task>, Task> GiaoDichWrapperAsync { get; set; }
+
     public static string ConnectionString
     {
         get => AppSettings.ChuoiKetNoi;
@@ -109,6 +120,12 @@ public static class DbHelper
     /// </summary>
     public static void ChayGiaoDich(Action thucHien)
     {
+        if (GiaoDichWrapper != null)
+        {
+            GiaoDichWrapper(thucHien);
+            return;
+        }
+
         if (_giaoDichHienTai.Value != null)
         {
             thucHien();          // đang trong giao dịch khác: dùng chung, không lồng
@@ -217,6 +234,12 @@ public static class DbHelper
     /// </summary>
     public static async Task ChayGiaoDichAsync(Func<Task> thucHien)
     {
+        if (GiaoDichWrapperAsync != null)
+        {
+            await GiaoDichWrapperAsync(thucHien);
+            return;
+        }
+
         if (_giaoDichHienTai.Value != null)
         {
             await thucHien();        // đang trong giao dịch khác: dùng chung, không lồng

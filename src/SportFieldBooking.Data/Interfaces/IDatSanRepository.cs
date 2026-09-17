@@ -10,7 +10,13 @@ public interface IDatSanRepository
     List<DatSan> LaySapDienRa(int soLuong);
     DatSan LayTheoMa(int maDat);
     /// <summary>Tìm các booking cùng sân, cùng ngày bị trùng khoảng giờ (bỏ qua booking đã hủy).</summary>
-    List<DatSan> LayTrungLich(int maSan, DateTime ngay, TimeSpan gioBatDau, TimeSpan gioKetThuc, int? maDatLoaiTru = null);
+    /// <param name="khoaBang">
+    /// Đặt true khi gọi ngay trước lúc ghi (đặt/sửa sân) bên trong một giao dịch:
+    /// câu SELECT sẽ dùng WITH (UPDLOCK, HOLDLOCK) để khoá dải bản ghi tới khi commit,
+    /// nhờ đó hai yêu cầu đặt cùng khung giờ không thể cùng lọt qua bước kiểm tra.
+    /// </param>
+    List<DatSan> LayTrungLich(int maSan, DateTime ngay, TimeSpan gioBatDau, TimeSpan gioKetThuc,
+        int? maDatLoaiTru = null, bool khoaBang = false);
     int Them(DatSan datSan);
     int CapNhat(DatSan datSan);
     int CapNhatTrangThai(int maDat, string trangThai);

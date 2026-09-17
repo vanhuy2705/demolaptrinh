@@ -14,18 +14,19 @@ echo ============================================================
 echo.
 
 if "%2"=="-U" (
-    sqlcmd -S %SERVER% -U %3 -P %4 -C -i 01_TaoCSDL.sql
+    sqlcmd -S %SERVER% -U %3 -P %4 -C -i 01_TaoCSDL_v2.sql
     if errorlevel 1 goto loi
-    sqlcmd -S %SERVER% -U %3 -P %4 -C -i 02_DuLieuMau.sql
+    sqlcmd -S %SERVER% -U %3 -P %4 -C -i 02_DuLieuMau_v2.sql
 ) else (
-    sqlcmd -S %SERVER% -E -C -i 01_TaoCSDL.sql
+    sqlcmd -S %SERVER% -E -C -i 01_TaoCSDL_v2.sql
     if errorlevel 1 goto loi
-    sqlcmd -S %SERVER% -E -C -i 02_DuLieuMau.sql
+    sqlcmd -S %SERVER% -E -C -i 02_DuLieuMau_v2.sql
 )
 
 if errorlevel 1 goto loi
 echo.
-echo  XONG! Da tao CSDL QLSanTheThao + du lieu mau.
+echo  XONG! Da tao CSDL QLSanTheThao (ban v2/v3) + du lieu mau.
+echo  DB cu dang chay: chay them 04_NangCapCSDL_v2.sql roi 05_BoSungVoucherDatSan_v3.sql
 goto xong
 
 :loi
