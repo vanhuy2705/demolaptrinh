@@ -15,6 +15,7 @@ public partial class frmChiTietHoaDon : BaseForm
     private readonly int _maHD;
     private readonly bool _coQuyenThuTien;
     private HoaDon _hoaDon;
+    private DatSan _datSanKiemTra;
 
     public frmChiTietHoaDon(int maHD, bool coQuyenThuTien = true)
     {
@@ -23,9 +24,26 @@ public partial class frmChiTietHoaDon : BaseForm
         _coQuyenThuTien = coQuyenThuTien;
     }
 
-    protected override void TaiDuLieu()
+    protected override async Task TaiDuLieuAsync()
     {
-        _hoaDon = ServiceFactory.HoaDon.LayTheoMa(_maHD);
+        bool laKhachHang = PhienLamViec.LaKhachHang && PhienLamViec.MaKH != null;
+        int? maKH = PhienLamViec.MaKH;
+
+        BatDauBan();
+        try
+        {
+            var dulieu = await ChayNenAsync(() =>
+            {
+                HoaDon hd = ServiceFactory.HoaDon.LayTheoMa(_maHD);
+                DatSan ds = (laKhachHang && hd != null) ? ServiceFactory.DatSan.LayTheoMa(hd.MaDat) : null;
+                return (hoaDon: hd, datSan: ds);
+            });
+            _hoaDon = dulieu.hoaDon;
+            _datSanKiemTra = dulieu.datSan;
+        }
+        catch (Exception ex) { BaoLoi("Không thể tải chi tiết hóa đơn", ex); KetThucBan(); return; }
+        KetThucBan();
+
         if (_hoaDon == null)
         {
             CanhBao("Không tìm thấy hóa đơn #" + _maHD + ".");
@@ -34,10 +52,10 @@ public partial class frmChiTietHoaDon : BaseForm
             return;
         }
 
-        if (PhienLamViec.LaKhachHang && PhienLamViec.MaKH != null)
+        if (laKhachHang)
         {
-            DatSan datSan = ServiceFactory.DatSan.LayTheoMa(_hoaDon.MaDat);
-            if (datSan != null && datSan.MaKH != PhienLamViec.MaKH)
+            DatSan datSan = _datSanKiemTra;
+            if (datSan != null && datSan.MaKH != maKH)
             {
                 VoHieuHoa("Đây không phải hóa đơn của bạn.\nBạn chỉ được xem hóa đơn của chính mình.");
                 return;
@@ -80,7 +98,7 @@ public partial class frmChiTietHoaDon : BaseForm
         txtGhiChu.ReadOnly = !(_coQuyenThuTien && PhanQuyenService.CoQuyen(MaQuyen.HdSua));
     }
 
-    private void btnThanhToan_Click(object sender, EventArgs e)
+    private async void btnThanhToan_Click(object sender, EventArgs e)
     {
         if (_hoaDon == null) return;
         if (!CoQuyen(MaQuyen.HdThanhToan)) return;
@@ -88,19 +106,20 @@ public partial class frmChiTietHoaDon : BaseForm
         using var xacNhan = new frmXacNhanThanhToan(_hoaDon);
         if (xacNhan.ShowDialog(this) != DialogResult.OK) return;
 
-        if (!ThucHien(ServiceFactory.HoaDon.ThanhToan(_hoaDon.MaHD, xacNhan.PhuongThuc),
-                $"Đã thanh toán hóa đơn #{_hoaDon.MaHD}.")) return;
+        if (!await ThucHienAsync(() => ServiceFactory.HoaDon.ThanhToan(_hoaDon.MaHD, xacNhan.PhuongThuc), $"Đã thanh toán hóa đơn #{_hoaDon.MaHD}.")) return;
 
         DialogResult = DialogResult.OK;
         Close();
     }
 
-    private void btnInHoaDon_Click(object sender, EventArgs e)
+    private async void btnInHoaDon_Click(object sender, EventArgs e)
     {
         if (_hoaDon == null) return;
         if (!CoQuyen(MaQuyen.HdIn)) return;
 
-        ThucHien(() => InHoaDon.XemTruoc(_hoaDon, LayThongTinCuaHang()), "Không thể xem trước hóa đơn");
+        var thongTin = await ChayNenAsync(() => LayThongTinCuaHang());
+        if (IsDisposed) return;
+        ThucHien(() => InHoaDon.XemTruoc(_hoaDon, thongTin), "Không thể xem trước hóa đơn");
     }
 
     private static InHoaDon.ThongTinCuaHang LayThongTinCuaHang() => new()
@@ -111,7 +130,7 @@ public partial class frmChiTietHoaDon : BaseForm
         LoiChao = ServiceFactory.CauHinh.LayGiaTri(ThamSoKeys.LoiChaoHoaDon, "Cảm ơn quý khách, hẹn gặp lại!")
     };
 
-    private void btnHuyHoaDon_Click(object sender, EventArgs e)
+    private async void btnHuyHoaDon_Click(object sender, EventArgs e)
     {
         if (_hoaDon == null) return;
         if (!CoQuyen(MaQuyen.HdXoa)) return;
@@ -120,7 +139,7 @@ public partial class frmChiTietHoaDon : BaseForm
         string lyDo = frmNhapLieu.NhapChuoi("Hủy hóa đơn", "Lý do hủy:", "Hủy hóa đơn", false, this);
         if (lyDo == null) return;
 
-        if (!ThucHien(ServiceFactory.HoaDon.HuyHoaDon(_hoaDon.MaHD, lyDo))) return;
+        if (!await ThucHienAsync(() => ServiceFactory.HoaDon.HuyHoaDon(_hoaDon.MaHD, lyDo))) return;
 
         DialogResult = DialogResult.OK;
         Close();

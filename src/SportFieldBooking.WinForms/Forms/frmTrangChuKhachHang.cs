@@ -49,42 +49,49 @@ public partial class frmTrangChuKhachHang : BaseForm
         Luoi.DatDinhDangNgay(dgvVoucher, "dd/MM/yyyy", "NgayKetThuc");
     }
 
-    protected override void TaiDuLieu() => TaiTrangChu();
+    protected override Task TaiDuLieuAsync() => TaiTrangChuAsync();
 
-    private void TaiTrangChu()
+    private async Task TaiTrangChuAsync()
     {
-        ThucHien(() =>
+        lblLoiChao.Text = $"Xin chào, {PhienLamViec.HoTen}!";
+
+        if (PhienLamViec.MaKH == null)
         {
-            lblLoiChao.Text = $"Xin chào, {PhienLamViec.HoTen}!";
+            lblThongBao.Text = "Tài khoản của bạn chưa được gắn với hồ sơ khách hàng. Vui lòng liên hệ quầy.";
+            lblThongBao.Visible = true;
+            return;
+        }
 
-            if (PhienLamViec.MaKH == null)
+        int maKH = PhienLamViec.MaKH.Value;
+        BatDauBan();
+        try
+        {
+            var dulieu = await ChayNenAsync(() =>
             {
-                lblThongBao.Text = "Tài khoản của bạn chưa được gắn với hồ sơ khách hàng. Vui lòng liên hệ quầy.";
-                lblThongBao.Visible = true;
-                return;
-            }
+                ServiceFactory.DatSan.CapNhatBookingDangSuDung();
+                return (
+                    thongKe: ServiceFactory.ThongKe.LayThongKeCaNhan(maKH),
+                    sapToi: ServiceFactory.DatSan.LaySapDienRa(30).Where(d => d.MaKH == maKH).ToList(),
+                    voucher: ServiceFactory.Voucher.LayVoucherCoTheDung());
+            });
 
-            int maKH = PhienLamViec.MaKH.Value;
-            ServiceFactory.DatSan.CapNhatBookingDangSuDung();
-
-            ThongKeCaNhan thongKe = ServiceFactory.ThongKe.LayThongKeCaNhan(maKH);
+            ThongKeCaNhan thongKe = dulieu.thongKe;
             kpiSoLanDat.DatNoiDung("Số lần đặt", thongKe.SoLanDat.ToString(), $"Hoàn thành: {thongKe.SoLanHoanThanh}");
             kpiChiTieu.DatNoiDung("Tổng chi tiêu", TroGiup.Tien(thongKe.TongChiTieu), $"Đã hủy: {thongKe.SoLanHuy}");
             kpiVoucher.DatNoiDung("Voucher đã dùng", thongKe.SoLanDungVoucher.ToString(), "");
             kpiSanYeuThich.DatNoiDung("Sân yêu thích", thongKe.SanYeuThich, "");
 
-            List<DatSan> sapToi = ServiceFactory.DatSan.LaySapDienRa(30)
-                .Where(d => d.MaKH == maKH).ToList();
-            Luoi.GanDuLieu(dgvSapToi, sapToi);
-
-            Luoi.GanDuLieu(dgvVoucher, ServiceFactory.Voucher.LayVoucherCoTheDung());
-            lblThongBao.Visible = sapToi.Count == 0;
-            if (sapToi.Count == 0)
+            Luoi.GanDuLieu(dgvSapToi, dulieu.sapToi);
+            Luoi.GanDuLieu(dgvVoucher, dulieu.voucher);
+            lblThongBao.Visible = dulieu.sapToi.Count == 0;
+            if (dulieu.sapToi.Count == 0)
                 lblThongBao.Text = "Bạn chưa có lịch đặt sân sắp tới. Nhấn \"Đặt sân ngay\" để tạo lịch mới.";
-        }, "Không thể tải dữ liệu trang chủ");
+        }
+        catch (Exception ex) { BaoLoi("Không thể tải dữ liệu trang chủ", ex); }
+        finally { KetThucBan(); }
     }
 
     private void btnDatSanNgay_Click(object sender, EventArgs e) => MuonDatSan?.Invoke(this, EventArgs.Empty);
 
-    private void btnLamMoi_Click(object sender, EventArgs e) => TaiTrangChu();
+    private void btnLamMoi_Click(object sender, EventArgs e) => _ = TaiTrangChuAsync();
 }

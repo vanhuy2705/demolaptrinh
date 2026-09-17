@@ -47,33 +47,42 @@ public partial class frmVoucherCuaToi : BaseForm
         Luoi.DatDinhDangNgay(dgvLichSu, "dd/MM/yyyy HH:mm", "NgaySuDung");
     }
 
-    protected override void TaiDuLieu() => TaiVoucher();
+    protected override Task TaiDuLieuAsync() => TaiVoucherAsync();
 
-    private void TaiVoucher()
+    private async Task TaiVoucherAsync()
     {
-        ThucHien(() =>
+        string tuKhoa = txtTimKiem.Text.Trim();
+        int? maKH = PhienLamViec.MaKH;
+
+        BatDauBan();
+        try
         {
-            List<Voucher> coTheDung = ServiceFactory.Voucher.LayVoucherCoTheDung(txtTimKiem.Text.Trim());
+            var (coTheDung, lichSu) = await ChayNenAsync(() =>
+            {
+                var dung = ServiceFactory.Voucher.LayVoucherCoTheDung(tuKhoa);
+                var ls = maKH != null ? ServiceFactory.Voucher.LayLichSuSuDung(maKH.Value) : null;
+                return (dung, ls);
+            });
+
             Luoi.GanDuLieu(dgvVoucher, coTheDung);
-
-            if (PhienLamViec.MaKH != null)
-                Luoi.GanDuLieu(dgvLichSu, ServiceFactory.Voucher.LayLichSuSuDung(PhienLamViec.MaKH.Value));
-
+            if (lichSu != null) Luoi.GanDuLieu(dgvLichSu, lichSu);
             lblThongKe.Text = $"{coTheDung.Count} voucher đang có thể sử dụng";
-        }, "Không thể tải danh sách voucher");
+        }
+        catch (Exception ex) { BaoLoi("Không thể tải danh sách voucher", ex); }
+        finally { KetThucBan(); }
     }
 
     private void btnLamMoi_Click(object sender, EventArgs e)
     {
         txtTimKiem.Clear();
-        TaiVoucher();
+        _ = TaiVoucherAsync();
     }
 
-    private void btnTim_Click(object sender, EventArgs e) => TaiVoucher();
+    private void btnTim_Click(object sender, EventArgs e) => _ = TaiVoucherAsync();
 
     private void txtTimKiem_KeyDown(object sender, KeyEventArgs e)
     {
-        if (e.KeyCode == Keys.Enter) TaiVoucher();
+        if (e.KeyCode == Keys.Enter) _ = TaiVoucherAsync();
     }
 
     /// <summary>Hiển thị mức giảm kèm đơn vị (% hoặc tiền).</summary>

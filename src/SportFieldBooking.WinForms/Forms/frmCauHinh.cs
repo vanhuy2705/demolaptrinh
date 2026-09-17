@@ -29,16 +29,19 @@ public partial class frmCauHinh : BaseForm
         Luoi.DatDoRong(dgvThamSo, "GiaTri", 200);
     }
 
-    protected override void TaiDuLieu()
+    protected override async Task TaiDuLieuAsync()
     {
-        ThucHien(() =>
+        BatDauBan();
+        try
         {
-            _danhSach = ServiceFactory.CauHinh.LayTatCa();
+            _danhSach = await ChayNenAsync(() => ServiceFactory.CauHinh.LayTatCa());
             Luoi.GanDuLieu(dgvThamSo, _danhSach);
             dgvThamSo.Columns["TenThamSo"].ReadOnly = true;
             dgvThamSo.Columns["MoTa"].ReadOnly = true;
             CapNhatTrangThaiNut();
-        }, "Không thể tải cấu hình hệ thống");
+        }
+        catch (Exception ex) { BaoLoi("Không thể tải cấu hình hệ thống", ex); }
+        finally { KetThucBan(); }
     }
 
     protected override void CapNhatTrangThaiNut()
@@ -51,7 +54,7 @@ public partial class frmCauHinh : BaseForm
         if (dgvThamSo.Columns.Contains("GiaTri")) dgvThamSo.Columns["GiaTri"].ReadOnly = !coQuyenSua;
     }
 
-    private void btnLuu_Click(object sender, EventArgs e)
+    private async void btnLuu_Click(object sender, EventArgs e)
     {
         if (!CoQuyen(MaQuyen.CauHinhSua)) return;
         if (!HopLe()) return;
@@ -59,9 +62,9 @@ public partial class frmCauHinh : BaseForm
         var danhSachLuu = _danhSach.Select(t => new KeyValuePair<string, string>(t.TenThamSo, (t.GiaTri ?? "").Trim()))
             .ToList();
 
-        if (!ThucHien(ServiceFactory.CauHinh.LuuNhieu(danhSachLuu), "Đã lưu cấu hình hệ thống.")) return;
+        if (!await ThucHienAsync(() => ServiceFactory.CauHinh.LuuNhieu(danhSachLuu), "Đã lưu cấu hình hệ thống.")) return;
 
-        TaiDuLieu();
+        _ = TaiDuLieuAsync();
     }
 
     private bool HopLe()
@@ -120,6 +123,6 @@ public partial class frmCauHinh : BaseForm
     private void btnLamMoi_Click(object sender, EventArgs e)
     {
         errLoi.Clear();
-        TaiDuLieu();
+        _ = TaiDuLieuAsync();
     }
 }

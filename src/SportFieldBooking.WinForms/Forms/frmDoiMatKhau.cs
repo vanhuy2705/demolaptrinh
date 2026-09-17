@@ -20,7 +20,7 @@ public partial class frmDoiMatKhau : Form
         txtMatKhauCu.Select();
     }
 
-    private void btnXacNhan_Click(object sender, EventArgs e)
+    private async void btnXacNhan_Click(object sender, EventArgs e)
     {
         errLoi.Clear();
         bool loi = false;
@@ -31,8 +31,17 @@ public partial class frmDoiMatKhau : Form
             "Mật khẩu xác nhận không khớp.", errLoi);
         if (loi) return;
 
-        KetQua ketQua = ServiceFactory.Auth.DoiMatKhau(PhienLamViec.MaTK,
-            txtMatKhauCu.Text, txtMatKhauMoi.Text, txtXacNhan.Text);
+        int maTK = PhienLamViec.MaTK;
+        string matKhauCu = txtMatKhauCu.Text, matKhauMoi = txtMatKhauMoi.Text, xacNhan = txtXacNhan.Text;
+
+        Cursor = Cursors.WaitCursor;
+        KetQua ketQua;
+        try
+        {
+            ketQua = await Task.Run(() => ServiceFactory.Auth.DoiMatKhau(maTK, matKhauCu, matKhauMoi, xacNhan));
+        }
+        finally { Cursor = Cursors.Default; }
+        if (IsDisposed) return;
 
         if (!ketQua.ThanhCong)
         {

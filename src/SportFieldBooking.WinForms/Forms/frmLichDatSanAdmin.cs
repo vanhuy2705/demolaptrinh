@@ -45,11 +45,8 @@ public partial class frmLichDatSanAdmin : BaseForm
         dtpTuNgay.Value = DateTime.Today;
         dtpDenNgay.Value = DateTime.Today.AddDays(7);
 
-        List<San> danhSachSan = ServiceFactory.San.LayTatCa();
         cboLocSan.Items.Clear();
         cboLocSan.Items.Add("Tất cả sân");
-        foreach (San san in danhSachSan)
-            cboLocSan.Items.Add(new SanLoc(san.MaSan, san.TenSan));
         cboLocSan.DisplayMember = nameof(SanLoc.TenSan);
         cboLocSan.ValueMember = nameof(SanLoc.MaSan);
         cboLocSan.SelectedIndex = 0;
@@ -70,7 +67,29 @@ public partial class frmLichDatSanAdmin : BaseForm
         public string TenSan { get; }
     }
 
-    protected override void TaiDuLieu() => TimKiem();
+    protected override async Task TaiDuLieuAsync()
+    {
+        await NapDanhSachSanAsync();
+        await TimKiemAsync();
+    }
+
+    private async Task NapDanhSachSanAsync()
+    {
+        BatDauBan();
+        try
+        {
+            List<San> danhSachSan = await ChayNenAsync(() => ServiceFactory.San.LayTatCa());
+            cboLocSan.Items.Clear();
+            cboLocSan.Items.Add("Tất cả sân");
+            foreach (San san in danhSachSan)
+                cboLocSan.Items.Add(new SanLoc(san.MaSan, san.TenSan));
+            cboLocSan.DisplayMember = nameof(SanLoc.TenSan);
+            cboLocSan.ValueMember = nameof(SanLoc.MaSan);
+            cboLocSan.SelectedIndex = 0;
+        }
+        catch (Exception ex) { BaoLoi("Không thể tải danh sách sân", ex); }
+        finally { KetThucBan(); }
+    }
 
     protected override void CapNhatTrangThaiNut()
     {
@@ -80,27 +99,31 @@ public partial class frmLichDatSanAdmin : BaseForm
         btnLapHoaDon.Enabled = coChon && PhanQuyenService.CoQuyen(MaQuyen.HdLap);
     }
 
-    private void TimKiem()
+    private async Task TimKiemAsync()
     {
-        ThucHien(() =>
+        int? maSan = cboLocSan.SelectedIndex > 0 ? ((SanLoc)cboLocSan.SelectedItem).MaSan : null;
+        string trangThai = cboLocTrangThai.SelectedIndex switch
         {
-            ServiceFactory.DatSan.CapNhatBookingDangSuDung();
+            1 => TrangThaiDatSan.DaDat,
+            2 => TrangThaiDatSan.DangSuDung,
+            3 => TrangThaiDatSan.HoanThanh,
+            4 => TrangThaiDatSan.DaHuy,
+            _ => null
+        };
+        DateTime tuNgay = dtpTuNgay.Value.Date, denNgay = dtpDenNgay.Value.Date;
+        string tuKhoa = txtTimKiem.Text.Trim().ToLowerInvariant();
 
-            int? maSan = cboLocSan.SelectedIndex > 0 ? ((SanLoc)cboLocSan.SelectedItem).MaSan : null;
-            string trangThai = cboLocTrangThai.SelectedIndex switch
+        BatDauBan();
+        try
+        {
+            _danhSach = await ChayNenAsync(() =>
             {
-                1 => TrangThaiDatSan.DaDat,
-                2 => TrangThaiDatSan.DangSuDung,
-                3 => TrangThaiDatSan.HoanThanh,
-                4 => TrangThaiDatSan.DaHuy,
-                _ => null
-            };
+                ServiceFactory.DatSan.CapNhatBookingDangSuDung();
+                return ServiceFactory.DatSan.LayTheoKhoang(tuNgay, denNgay, maSan, trangThai);
+            });
 
-            _danhSach = ServiceFactory.DatSan.LayTheoKhoang(dtpTuNgay.Value.Date, dtpDenNgay.Value.Date, maSan, trangThai);
-
-            if (!string.IsNullOrWhiteSpace(txtTimKiem.Text))
+            if (!string.IsNullOrEmpty(tuKhoa))
             {
-                string tuKhoa = txtTimKiem.Text.Trim().ToLowerInvariant();
                 _danhSach = _danhSach.Where(d =>
                     (d.TenKH ?? "").ToLowerInvariant().Contains(tuKhoa) ||
                     (d.SDT ?? "").Contains(tuKhoa) ||
@@ -110,7 +133,9 @@ public partial class frmLichDatSanAdmin : BaseForm
             Luoi.GanDuLieu(dgvLich, _danhSach);
             ThongKeNhanh();
             CapNhatTrangThaiNut();
-        }, "Không thể tải lịch đặt sân");
+        }
+        catch (Exception ex) { BaoLoi("Không thể tải lịch đặt sân", ex); }
+        finally { KetThucBan(); }
     }
 
     private void ThongKeNhanh()
@@ -127,13 +152,13 @@ public partial class frmLichDatSanAdmin : BaseForm
     {
         dtpTuNgay.Value = DateTime.Today;
         dtpDenNgay.Value = DateTime.Today;
-        TimKiem();
+        _ = TimKiemAsync();
     }
 
     private void btnLamMoi_Click(object sender, EventArgs e)
     {
         txtTimKiem.Clear();
-        TimKiem();
+        _ = TimKiemAsync();
     }
 
     private void btnXemChiTiet_Click(object sender, EventArgs e)
@@ -141,10 +166,10 @@ public partial class frmLichDatSanAdmin : BaseForm
         int maDat = Luoi.LayMaDangChon(dgvLich, "MaDat");
         if (maDat <= 0) return;
         using var chiTiet = new frmChiTietDatSan(maDat, coQuyenQuanLy: true);
-        if (chiTiet.ShowDialog(this) == DialogResult.OK) TimKiem();
+        if (chiTiet.ShowDialog(this) == DialogResult.OK) _ = TimKiemAsync();
     }
 
-    private void btnHuyBooking_Click(object sender, EventArgs e)
+    private async void btnHuyBooking_Click(object sender, EventArgs e)
     {
         DatSan dangChon = Luoi.LayDongDangChon<DatSan>(dgvLich);
         if (dangChon == null) return;
@@ -153,34 +178,36 @@ public partial class frmLichDatSanAdmin : BaseForm
         string lyDo = frmNhapLieu.NhapChuoi("Hủy booking", "Lý do hủy:", "Khách hủy", false, this);
         if (lyDo == null) return;
 
-        ThucHien(ServiceFactory.DatSan.HuyDatSan(dangChon.MaDat, lyDo));
-        TimKiem();
+        await ThucHienAsync(() => ServiceFactory.DatSan.HuyDatSan(dangChon.MaDat, lyDo));
+        _ = TimKiemAsync();
     }
 
-    private void btnLapHoaDon_Click(object sender, EventArgs e)
+    private async void btnLapHoaDon_Click(object sender, EventArgs e)
     {
         DatSan dangChon = Luoi.LayDongDangChon<DatSan>(dgvLich);
         if (dangChon == null) return;
         if (!CoQuyen(MaQuyen.HdLap)) return;
 
-        var ketQua = ServiceFactory.HoaDon.LapHoaDon(dangChon.MaDat);
+        int maDat = dangChon.MaDat;
+        var ketQua = await ChayNenAsync(() => ServiceFactory.HoaDon.LapHoaDon(maDat));
+        if (IsDisposed) return;
         if (!ThucHien(ketQua)) return;
 
         using var chiTietHoaDon = new frmChiTietHoaDon(ketQua.DuLieu.MaHD, coQuyenThuTien: true);
         chiTietHoaDon.ShowDialog(this);
-        TimKiem();
+        _ = TimKiemAsync();
     }
 
-    private void btnTim_Click(object sender, EventArgs e) => TimKiem();
+    private void btnTim_Click(object sender, EventArgs e) => _ = TimKiemAsync();
 
     private void LocThayDoi(object sender, EventArgs e)
     {
-        if (IsHandleCreated) TimKiem();
+        if (IsHandleCreated) _ = TimKiemAsync();
     }
 
     private void txtTimKiem_KeyDown(object sender, KeyEventArgs e)
     {
-        if (e.KeyCode == Keys.Enter) TimKiem();
+        if (e.KeyCode == Keys.Enter) _ = TimKiemAsync();
     }
 
     private void dgvLich_SelectionChanged(object sender, EventArgs e) => CapNhatTrangThaiNut();

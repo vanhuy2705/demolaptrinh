@@ -44,9 +44,6 @@ public partial class frmSan : BaseForm
 
     private void NapComboBox()
     {
-        _danhSachLoaiSan = ServiceFactory.LoaiSan.LayTatCa();
-        TroGiup.GanComboBox(cboLoaiSan, _danhSachLoaiSan, "TenLoaiSan", "MaLoaiSan");
-
         cboTrangThai.Items.Clear();
         cboTrangThai.Items.AddRange(new object[] { "Tất cả", "Trống", "Đang thuê", "Bảo trì" });
         cboTrangThai.SelectedIndex = 0;
@@ -64,7 +61,23 @@ public partial class frmSan : BaseForm
         _ => null
     };
 
-    protected override void TaiDuLieu() => TimKiem();
+    protected override async Task TaiDuLieuAsync()
+    {
+        await NapLoaiSanAsync();
+        await TimKiemAsync();
+    }
+
+    private async Task NapLoaiSanAsync()
+    {
+        BatDauBan();
+        try
+        {
+            _danhSachLoaiSan = await ChayNenAsync(() => ServiceFactory.LoaiSan.LayTatCa());
+            TroGiup.GanComboBox(cboLoaiSan, _danhSachLoaiSan, "TenLoaiSan", "MaLoaiSan");
+        }
+        catch (Exception ex) { BaoLoi("Không thể tải danh sách loại sân", ex); }
+        finally { KetThucBan(); }
+    }
 
     protected override void CapNhatTrangThaiNut()
     {
@@ -88,15 +101,20 @@ public partial class frmSan : BaseForm
         dgvSan.Enabled = !dangSua;
     }
 
-    private void TimKiem()
+    private async Task TimKiemAsync()
     {
-        ThucHien(() =>
+        string tuKhoa = txtTimKiem.Text.Trim();
+        string trangThai = LayMaTrangThai(cboTrangThai.Text);
+        BatDauBan();
+        try
         {
-            string trangThai = LayMaTrangThai(cboTrangThai.Text);
-            Luoi.GanDuLieu(dgvSan, ServiceFactory.San.LayTatCa(txtTimKiem.Text.Trim(), null, trangThai));
+            var danhSach = await ChayNenAsync(() => ServiceFactory.San.LayTatCa(tuKhoa, null, trangThai));
+            Luoi.GanDuLieu(dgvSan, danhSach);
             HienThiChiTiet();
             CapNhatTrangThaiNut();
-        }, "Không thể tải danh sách sân");
+        }
+        catch (Exception ex) { BaoLoi("Không thể tải danh sách sân", ex); }
+        finally { KetThucBan(); }
     }
 
     private void HienThiChiTiet()
@@ -148,18 +166,18 @@ public partial class frmSan : BaseForm
         CapNhatTrangThaiNut();
     }
 
-    private void btnXoa_Click(object sender, EventArgs e)
+    private async void btnXoa_Click(object sender, EventArgs e)
     {
         San dangChon = Luoi.LayDongDangChon<San>(dgvSan);
         if (dangChon == null || !CoQuyen(MaQuyen.SanXoa)) return;
         if (!XacNhan($"Xóa sân \"{dangChon.TenSan}\"?", "Xác nhận xóa")) return;
 
-        ThucHien(ServiceFactory.San.Xoa(dangChon.MaSan));
+        await ThucHienAsync(() => ServiceFactory.San.Xoa(dangChon.MaSan));
         _cheDo = CheDo.Xem;
-        TimKiem();
+        _ = TimKiemAsync();
     }
 
-    private void btnLuu_Click(object sender, EventArgs e)
+    private async void btnLuu_Click(object sender, EventArgs e)
     {
         if (!HopLe(out decimal donGia)) return;
 
@@ -175,19 +193,19 @@ public partial class frmSan : BaseForm
         bool thanhCong;
         if (_cheDo == CheDo.Them)
         {
-            thanhCong = ThucHien(ServiceFactory.San.Them(san));
+            thanhCong = await ThucHienAsync(() => ServiceFactory.San.Them(san));
         }
         else
         {
             San dangChon = Luoi.LayDongDangChon<San>(dgvSan);
             if (dangChon == null) return;
             san.MaSan = dangChon.MaSan;
-            thanhCong = ThucHien(ServiceFactory.San.CapNhat(san));
+            thanhCong = await ThucHienAsync(() => ServiceFactory.San.CapNhat(san));
         }
 
         if (!thanhCong) return;
         _cheDo = CheDo.Xem;
-        TimKiem();
+        _ = TimKiemAsync();
     }
 
     private bool HopLe(out decimal donGia)
@@ -200,7 +218,7 @@ public partial class frmSan : BaseForm
     }
 
     /// <summary>Đổi nhanh trạng thái nghiệp vụ của sân (Admin và Nhân viên).</summary>
-    private void btnDoiTrangThai_Click(object sender, EventArgs e)
+    private async void btnDoiTrangThai_Click(object sender, EventArgs e)
     {
         San dangChon = Luoi.LayDongDangChon<San>(dgvSan);
         if (dangChon == null) return;
@@ -216,8 +234,8 @@ public partial class frmSan : BaseForm
         if (!XacNhan($"Chuyển sân \"{dangChon.TenSan}\" sang trạng thái {TrangThaiSan.TenHienThi(trangThaiMoi)}?",
                 "Đổi trạng thái sân")) return;
 
-        ThucHien(ServiceFactory.San.DoiTrangThai(dangChon.MaSan, trangThaiMoi));
-        TimKiem();
+        await ThucHienAsync(() => ServiceFactory.San.DoiTrangThai(dangChon.MaSan, trangThaiMoi));
+        _ = TimKiemAsync();
     }
 
     private void btnHuy_Click(object sender, EventArgs e)
@@ -233,19 +251,19 @@ public partial class frmSan : BaseForm
         txtTimKiem.Clear();
         cboTrangThai.SelectedIndex = 0;
         _cheDo = CheDo.Xem;
-        TimKiem();
+        _ = TimKiemAsync();
     }
 
-    private void btnTim_Click(object sender, EventArgs e) => TimKiem();
+    private void btnTim_Click(object sender, EventArgs e) => _ = TimKiemAsync();
 
     private void cboTrangThai_SelectedIndexChanged(object sender, EventArgs e)
     {
-        if (_cheDo == CheDo.Xem) TimKiem();
+        if (_cheDo == CheDo.Xem) _ = TimKiemAsync();
     }
 
     private void txtTimKiem_KeyDown(object sender, KeyEventArgs e)
     {
-        if (e.KeyCode == Keys.Enter) TimKiem();
+        if (e.KeyCode == Keys.Enter) _ = TimKiemAsync();
     }
 
     private void dgvSan_SelectionChanged(object sender, EventArgs e)

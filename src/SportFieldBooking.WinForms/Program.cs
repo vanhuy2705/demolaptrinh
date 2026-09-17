@@ -13,6 +13,13 @@ internal static class Program
         ApplicationConfiguration.Initialize();
         Application.SetDefaultFont(new Font(GiaoDien.TenFont, 10F));
 
+        // Lưới an toàn: các handler async void / tác vụ nền không được quan sát
+        // nếu ném lỗi sẽ báo hộp thoại thay vì làm ứng dụng thoát đột ngột.
+        Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+        Application.ThreadException += (_, e) => BaoLoiKhongMongMuon(e.Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => BaoLoiKhongMongMuon(e.ExceptionObject as Exception);
+        TaskScheduler.UnobservedTaskException += (_, e) => e.SetObserved();
+
         // Chủ đề giao diện: dùng lại lựa chọn người dùng đã nhớ (mặc định Tối).
         GiaoDien.ChuyenTheme(toi: CaiDatNguoiDung.LaThemeToi);
 
@@ -34,6 +41,21 @@ internal static class Program
 
             if (manHinhChinh == null) break;
             Application.Run(manHinhChinh);
+        }
+    }
+
+    private static void BaoLoiKhongMongMuon(Exception ex)
+    {
+        try
+        {
+            frmThongBao.HienThi(
+                "Đã xảy ra lỗi ngoài ý muốn:\n\n" + (ex?.Message ?? "Không xác định") +
+                "\n\nỨng dụng vẫn tiếp tục hoạt động. Nếu lỗi lặp lại, hãy kiểm tra kết nối cơ sở dữ liệu.",
+                "Lỗi không mong muốn", frmThongBao.LoaiThongBao.Loi);
+        }
+        catch
+        {
+            // Bản thân trình báo lỗi không được phép ném tiếp.
         }
     }
 

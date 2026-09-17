@@ -41,7 +41,7 @@ public partial class frmHoaDonCuaToi : BaseForm
         cboTrangThai.SelectedIndex = 0;
     }
 
-    protected override void TaiDuLieu() => TaiHoaDon();
+    protected override Task TaiDuLieuAsync() => TaiHoaDonAsync();
 
     protected override void CapNhatTrangThaiNut()
     {
@@ -50,24 +50,28 @@ public partial class frmHoaDonCuaToi : BaseForm
         btnIn.Enabled = coChon;
     }
 
-    private void TaiHoaDon()
+    private async Task TaiHoaDonAsync()
     {
-        ThucHien(() =>
+        int? maKH = PhienLamViec.MaKH;
+        string trangThai = cboTrangThai.SelectedIndex switch
         {
-            if (PhienLamViec.MaKH == null)
+            1 => TrangThaiHoaDon.ChuaThanhToan,
+            2 => TrangThaiHoaDon.DaThanhToan,
+            3 => TrangThaiHoaDon.DaHuy,
+            _ => null
+        };
+
+        BatDauBan();
+        try
+        {
+            if (maKH == null)
             {
                 Luoi.GanDuLieu(dgvHoaDon, new List<HoaDon>());
+                CapNhatTrangThaiNut();
                 return;
             }
 
-            List<HoaDon> danhSach = ServiceFactory.HoaDon.LayTheoKhachHang(PhienLamViec.MaKH.Value);
-            string trangThai = cboTrangThai.SelectedIndex switch
-            {
-                1 => TrangThaiHoaDon.ChuaThanhToan,
-                2 => TrangThaiHoaDon.DaThanhToan,
-                3 => TrangThaiHoaDon.DaHuy,
-                _ => null
-            };
+            var danhSach = await ChayNenAsync(() => ServiceFactory.HoaDon.LayTheoKhachHang(maKH.Value));
             if (trangThai != null) danhSach = danhSach.Where(h => h.TrangThai == trangThai).ToList();
 
             Luoi.GanDuLieu(dgvHoaDon, danhSach.OrderByDescending(h => h.NgayLap).ToList());
@@ -75,7 +79,9 @@ public partial class frmHoaDonCuaToi : BaseForm
                               $"Tổng chi tiêu: {TroGiup.Tien(danhSach.Where(h => h.TrangThai == TrangThaiHoaDon.DaThanhToan).Sum(h => h.TongTien))}  |  " +
                               $"Chưa thanh toán: {TroGiup.Tien(danhSach.Where(h => h.TrangThai == TrangThaiHoaDon.ChuaThanhToan).Sum(h => h.TongTien))}";
             CapNhatTrangThaiNut();
-        }, "Không thể tải danh sách hóa đơn");
+        }
+        catch (Exception ex) { BaoLoi("Không thể tải danh sách hóa đơn", ex); }
+        finally { KetThucBan(); }
     }
 
     private void btnChiTiet_Click(object sender, EventArgs e)
@@ -86,29 +92,32 @@ public partial class frmHoaDonCuaToi : BaseForm
         chiTiet.ShowDialog(this);
     }
 
-    private void btnIn_Click(object sender, EventArgs e)
+    private async void btnIn_Click(object sender, EventArgs e)
     {
         HoaDon dangChon = Luoi.LayDongDangChon<HoaDon>(dgvHoaDon);
         if (dangChon == null) return;
 
-        ThucHien(() => InHoaDon.XemTruoc(dangChon, new InHoaDon.ThongTinCuaHang
+        var thongTin = await ChayNenAsync(() => new InHoaDon.ThongTinCuaHang
         {
             TenTrungTam = ServiceFactory.CauHinh.LayGiaTri(ThamSoKeys.TenTrungTam, "TRUNG TÂM THỂ THAO"),
             DiaChi = ServiceFactory.CauHinh.LayGiaTri(ThamSoKeys.DiaChi, ""),
             DienThoai = ServiceFactory.CauHinh.LayGiaTri(ThamSoKeys.DienThoai, ""),
             LoiChao = ServiceFactory.CauHinh.LayGiaTri(ThamSoKeys.LoiChaoHoaDon, "Cảm ơn quý khách, hẹn gặp lại!")
-        }), "Không thể xem trước hóa đơn");
+        });
+        if (IsDisposed) return;
+
+        ThucHien(() => InHoaDon.XemTruoc(dangChon, thongTin), "Không thể xem trước hóa đơn");
     }
 
     private void btnLamMoi_Click(object sender, EventArgs e)
     {
         cboTrangThai.SelectedIndex = 0;
-        TaiHoaDon();
+        _ = TaiHoaDonAsync();
     }
 
     private void cboTrangThai_SelectedIndexChanged(object sender, EventArgs e)
     {
-        if (IsHandleCreated) TaiHoaDon();
+        if (IsHandleCreated) _ = TaiHoaDonAsync();
     }
 
     private void dgvHoaDon_SelectionChanged(object sender, EventArgs e) => CapNhatTrangThaiNut();

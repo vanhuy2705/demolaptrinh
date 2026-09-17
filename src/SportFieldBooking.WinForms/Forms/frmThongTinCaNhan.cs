@@ -10,6 +10,7 @@ namespace SportFieldBooking.WinForms.Forms;
 public partial class frmThongTinCaNhan : BaseForm
 {
     private KhachHang _khachHang;
+    private ThongKeCaNhan _thongKe;
     private bool _dangSua;
 
     public frmThongTinCaNhan()
@@ -19,7 +20,7 @@ public partial class frmThongTinCaNhan : BaseForm
 
     protected override string MaQuyenYeuCau => MaQuyen.KhXem;
 
-    protected override void TaiDuLieu()
+    protected override async Task TaiDuLieuAsync()
     {
         if (PhienLamViec.MaKH == null)
         {
@@ -27,17 +28,29 @@ public partial class frmThongTinCaNhan : BaseForm
             return;
         }
 
-        ThucHien(() =>
+        int maKH = PhienLamViec.MaKH.Value;
+        BatDauBan();
+        try
         {
-            _khachHang = ServiceFactory.KhachHang.LayTheoMa(PhienLamViec.MaKH.Value);
+            var dulieu = await ChayNenAsync(() =>
+            {
+                KhachHang kh = ServiceFactory.KhachHang.LayTheoMa(maKH);
+                return (khachHang: kh, thongKe: kh == null ? null : ServiceFactory.ThongKe.LayThongKeCaNhan(kh.MaKH));
+            });
+
+            _khachHang = dulieu.khachHang;
+            _thongKe = dulieu.thongKe;
             if (_khachHang == null)
             {
                 VoHieuHoa("Không tìm thấy hồ sơ khách hàng của bạn.");
                 return;
             }
+
             HienThiThongTin();
             CapNhatTrangThaiNut();
-        }, "Không thể tải thông tin cá nhân");
+        }
+        catch (Exception ex) { BaoLoi("Không thể tải thông tin cá nhân", ex); }
+        finally { KetThucBan(); }
     }
 
     private void HienThiThongTin()
@@ -49,7 +62,7 @@ public partial class frmThongTinCaNhan : BaseForm
         txtEmail.Text = _khachHang.Email;
         txtDiaChi.Text = _khachHang.DiaChi;
 
-        ThongKeCaNhan thongKe = ServiceFactory.ThongKe.LayThongKeCaNhan(_khachHang.MaKH);
+        ThongKeCaNhan thongKe = _thongKe;
         kpiSoLanDat.DatNoiDung("Số lần đặt", thongKe.SoLanDat.ToString(), $"Hoàn thành: {thongKe.SoLanHoanThanh}");
         kpiChiTieu.DatNoiDung("Tổng chi tiêu", TroGiup.Tien(thongKe.TongChiTieu), $"Hủy: {thongKe.SoLanHuy} lần");
         kpiVoucher.DatNoiDung("Lần dùng voucher", thongKe.SoLanDungVoucher.ToString(), "");
@@ -78,7 +91,7 @@ public partial class frmThongTinCaNhan : BaseForm
         CapNhatTrangThaiNut();
     }
 
-    private void btnLuu_Click(object sender, EventArgs e)
+    private async void btnLuu_Click(object sender, EventArgs e)
     {
         if (_khachHang == null || !CoQuyen(MaQuyen.KhSua)) return;
 
@@ -93,10 +106,10 @@ public partial class frmThongTinCaNhan : BaseForm
         _khachHang.Email = txtEmail.Text.Trim();
         _khachHang.DiaChi = txtDiaChi.Text.Trim();
 
-        if (!ThucHien(ServiceFactory.KhachHang.CapNhat(_khachHang, laTuChinhSua: true))) return;
+        if (!await ThucHienAsync(() => ServiceFactory.KhachHang.CapNhat(_khachHang, laTuChinhSua: true))) return;
 
         _dangSua = false;
-        TaiDuLieu();
+        _ = TaiDuLieuAsync();
     }
 
     private void btnHuy_Click(object sender, EventArgs e)

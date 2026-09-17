@@ -40,7 +40,7 @@ public partial class frmLichSuDatSan : BaseForm
         cboTrangThai.SelectedIndex = 0;
     }
 
-    protected override void TaiDuLieu() => TaiLichSu();
+    protected override Task TaiDuLieuAsync() => TaiLichSuAsync();
 
     protected override void CapNhatTrangThaiNut()
     {
@@ -51,33 +51,39 @@ public partial class frmLichSuDatSan : BaseForm
             && PhanQuyenService.CoQuyen(MaQuyen.DatSanHuy);
     }
 
-    private void TaiLichSu()
+    private async Task TaiLichSuAsync()
     {
-        ThucHien(() =>
+        int? maKH = PhienLamViec.MaKH;
+        string trangThai = cboTrangThai.SelectedIndex switch
         {
-            if (PhienLamViec.MaKH == null)
+            1 => TrangThaiDatSan.DaDat,
+            2 => TrangThaiDatSan.DangSuDung,
+            3 => TrangThaiDatSan.HoanThanh,
+            4 => TrangThaiDatSan.DaHuy,
+            _ => null
+        };
+        bool locTu = dtpTuNgay.Checked; DateTime tuNgay = dtpTuNgay.Value.Date;
+        bool locDen = dtpDenNgay.Checked; DateTime denNgay = dtpDenNgay.Value.Date;
+
+        BatDauBan();
+        try
+        {
+            if (maKH == null)
             {
                 Luoi.GanDuLieu(dgvLichSu, new List<DatSan>());
+                CapNhatTrangThaiNut();
                 return;
             }
 
-            ServiceFactory.DatSan.CapNhatBookingDangSuDung();
-            List<DatSan> danhSach = ServiceFactory.DatSan.LayTheoKhachHang(PhienLamViec.MaKH.Value);
-
-            string trangThai = cboTrangThai.SelectedIndex switch
+            var danhSach = await ChayNenAsync(() =>
             {
-                1 => TrangThaiDatSan.DaDat,
-                2 => TrangThaiDatSan.DangSuDung,
-                3 => TrangThaiDatSan.HoanThanh,
-                4 => TrangThaiDatSan.DaHuy,
-                _ => null
-            };
-            if (trangThai != null) danhSach = danhSach.Where(d => d.TrangThai == trangThai).ToList();
+                ServiceFactory.DatSan.CapNhatBookingDangSuDung();
+                return ServiceFactory.DatSan.LayTheoKhachHang(maKH.Value);
+            });
 
-            if (dtpTuNgay.Checked)
-                danhSach = danhSach.Where(d => d.NgayDat.Date >= dtpTuNgay.Value.Date).ToList();
-            if (dtpDenNgay.Checked)
-                danhSach = danhSach.Where(d => d.NgayDat.Date <= dtpDenNgay.Value.Date).ToList();
+            if (trangThai != null) danhSach = danhSach.Where(d => d.TrangThai == trangThai).ToList();
+            if (locTu) danhSach = danhSach.Where(d => d.NgayDat.Date >= tuNgay).ToList();
+            if (locDen) danhSach = danhSach.Where(d => d.NgayDat.Date <= denNgay).ToList();
 
             Luoi.GanDuLieu(dgvLichSu, danhSach.OrderByDescending(d => d.NgayDat).ToList());
             lblThongKe.Text = $"Tổng {danhSach.Count} lượt  |  " +
@@ -85,7 +91,9 @@ public partial class frmLichSuDatSan : BaseForm
                               $"Đã hủy: {danhSach.Count(d => d.TrangThai == TrangThaiDatSan.DaHuy)}  |  " +
                               $"Tổng tiền: {TroGiup.Tien(danhSach.Where(d => d.TrangThai != TrangThaiDatSan.DaHuy).Sum(d => d.TienSan))}";
             CapNhatTrangThaiNut();
-        }, "Không thể tải lịch sử đặt sân");
+        }
+        catch (Exception ex) { BaoLoi("Không thể tải lịch sử đặt sân", ex); }
+        finally { KetThucBan(); }
     }
 
     private void btnChiTiet_Click(object sender, EventArgs e)
@@ -93,10 +101,10 @@ public partial class frmLichSuDatSan : BaseForm
         int maDat = Luoi.LayMaDangChon(dgvLichSu, "MaDat");
         if (maDat <= 0) return;
         using var chiTiet = new frmChiTietDatSan(maDat, coQuyenQuanLy: false);
-        if (chiTiet.ShowDialog(this) == DialogResult.OK) TaiLichSu();
+        if (chiTiet.ShowDialog(this) == DialogResult.OK) _ = TaiLichSuAsync();
     }
 
-    private void btnHuy_Click(object sender, EventArgs e)
+    private async void btnHuy_Click(object sender, EventArgs e)
     {
         DatSan dangChon = Luoi.LayDongDangChon<DatSan>(dgvLichSu);
         if (dangChon == null) return;
@@ -104,8 +112,8 @@ public partial class frmLichSuDatSan : BaseForm
         if (!XacNhan($"Hủy booking #{dangChon.MaDat} ({dangChon.TenSan}, {dangChon.NgayDat:dd/MM/yyyy})?",
                 "Xác nhận hủy booking")) return;
 
-        ThucHien(ServiceFactory.DatSan.HuyDatSan(dangChon.MaDat, "Khách hàng tự hủy"));
-        TaiLichSu();
+        await ThucHienAsync(() => ServiceFactory.DatSan.HuyDatSan(dangChon.MaDat, "Khách hàng tự hủy"));
+        _ = TaiLichSuAsync();
     }
 
     private void btnLamMoi_Click(object sender, EventArgs e)
@@ -113,12 +121,12 @@ public partial class frmLichSuDatSan : BaseForm
         cboTrangThai.SelectedIndex = 0;
         dtpTuNgay.Checked = false;
         dtpDenNgay.Checked = false;
-        TaiLichSu();
+        _ = TaiLichSuAsync();
     }
 
     private void LocThayDoi(object sender, EventArgs e)
     {
-        if (IsHandleCreated) TaiLichSu();
+        if (IsHandleCreated) _ = TaiLichSuAsync();
     }
 
     private void dgvLichSu_SelectionChanged(object sender, EventArgs e) => CapNhatTrangThaiNut();

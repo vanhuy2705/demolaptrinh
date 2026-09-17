@@ -32,7 +32,7 @@ public partial class frmLoaiSan : BaseForm
         AnCot();
     }
 
-    protected override void TaiDuLieu() => TimKiem();
+    protected override Task TaiDuLieuAsync() => TimKiemAsync();
 
     protected override void CapNhatTrangThaiNut()
     {
@@ -57,14 +57,19 @@ public partial class frmLoaiSan : BaseForm
 
     private void AnCot() { }
 
-    private void TimKiem()
+    private async Task TimKiemAsync()
     {
-        ThucHien(() =>
+        string tuKhoa = txtTimKiem.Text.Trim();
+        BatDauBan();
+        try
         {
-            Luoi.GanDuLieu(dgvLoaiSan, ServiceFactory.LoaiSan.LayTatCa(txtTimKiem.Text.Trim()));
+            var danhSach = await ChayNenAsync(() => ServiceFactory.LoaiSan.LayTatCa(tuKhoa));
+            Luoi.GanDuLieu(dgvLoaiSan, danhSach);
             HienThiChiTiet();
             CapNhatTrangThaiNut();
-        }, "Không thể tải danh sách loại sân");
+        }
+        catch (Exception ex) { BaoLoi("Không thể tải danh sách loại sân", ex); }
+        finally { KetThucBan(); }
     }
 
     private void HienThiChiTiet()
@@ -106,19 +111,19 @@ public partial class frmLoaiSan : BaseForm
         CapNhatTrangThaiNut();
     }
 
-    private void btnXoa_Click(object sender, EventArgs e)
+    private async void btnXoa_Click(object sender, EventArgs e)
     {
         LoaiSan dangChon = Luoi.LayDongDangChon<LoaiSan>(dgvLoaiSan);
         if (dangChon == null) return;
         if (!CoQuyen(MaQuyen.LoaiSanXoa)) return;
         if (!XacNhan($"Xóa loại sân \"{dangChon.TenLoaiSan}\"?", "Xác nhận xóa")) return;
 
-        ThucHien(ServiceFactory.LoaiSan.Xoa(dangChon.MaLoaiSan));
+        await ThucHienAsync(() => ServiceFactory.LoaiSan.Xoa(dangChon.MaLoaiSan));
         _cheDo = CheDo.Xem;
-        TimKiem();
+        _ = TimKiemAsync();
     }
 
-    private void btnLuu_Click(object sender, EventArgs e)
+    private async void btnLuu_Click(object sender, EventArgs e)
     {
         if (!HopLe()) return;
 
@@ -131,7 +136,7 @@ public partial class frmLoaiSan : BaseForm
         bool thanhCong;
         if (_cheDo == CheDo.Them)
         {
-            KetQua<LoaiSan> ketQua = ServiceFactory.LoaiSan.Them(loaiSan);
+            KetQua<LoaiSan> ketQua = await ChayNenAsync(() => ServiceFactory.LoaiSan.Them(loaiSan));
             thanhCong = ThucHien(ketQua);
         }
         else
@@ -139,12 +144,12 @@ public partial class frmLoaiSan : BaseForm
             LoaiSan dangChon = Luoi.LayDongDangChon<LoaiSan>(dgvLoaiSan);
             if (dangChon == null) return;
             loaiSan.MaLoaiSan = dangChon.MaLoaiSan;
-            thanhCong = ThucHien(ServiceFactory.LoaiSan.CapNhat(loaiSan));
+            thanhCong = await ThucHienAsync(() => ServiceFactory.LoaiSan.CapNhat(loaiSan));
         }
 
         if (!thanhCong) return;
         _cheDo = CheDo.Xem;
-        TimKiem();
+        _ = TimKiemAsync();
     }
 
     private bool HopLe()
@@ -165,14 +170,14 @@ public partial class frmLoaiSan : BaseForm
     {
         txtTimKiem.Clear();
         _cheDo = CheDo.Xem;
-        TimKiem();
+        _ = TimKiemAsync();
     }
 
-    private void btnTim_Click(object sender, EventArgs e) => TimKiem();
+    private void btnTim_Click(object sender, EventArgs e) => _ = TimKiemAsync();
 
     private void txtTimKiem_KeyDown(object sender, KeyEventArgs e)
     {
-        if (e.KeyCode == Keys.Enter) TimKiem();
+        if (e.KeyCode == Keys.Enter) _ = TimKiemAsync();
     }
 
     private void dgvLoaiSan_SelectionChanged(object sender, EventArgs e)

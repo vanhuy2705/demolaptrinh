@@ -19,18 +19,23 @@ public partial class frmDangKy : Form
         txtHoTen.Select();
     }
 
-    private void btnDangKy_Click(object sender, EventArgs e)
+    private async void btnDangKy_Click(object sender, EventArgs e)
     {
         if (!HopLe()) return;
 
-        KetQua<TaiKhoan> ketQua = ServiceFactory.Auth.DangKy(
-            txtTenDangNhap.Text.Trim(),
-            txtMatKhau.Text,
-            txtXacNhanMatKhau.Text,
-            txtHoTen.Text.Trim(),
-            txtSoDienThoai.Text.Trim(),
-            txtEmail.Text.Trim(),
-            txtDiaChi.Text.Trim());
+        string tenDangNhap = txtTenDangNhap.Text.Trim(), matKhau = txtMatKhau.Text,
+            xacNhan = txtXacNhanMatKhau.Text, hoTen = txtHoTen.Text.Trim(),
+            sdt = txtSoDienThoai.Text.Trim(), email = txtEmail.Text.Trim(), diaChi = txtDiaChi.Text.Trim();
+
+        Cursor = Cursors.WaitCursor;
+        KetQua<TaiKhoan> ketQua;
+        try
+        {
+            ketQua = await Task.Run(() => ServiceFactory.Auth.DangKy(
+                tenDangNhap, matKhau, xacNhan, hoTen, sdt, email, diaChi));
+        }
+        finally { Cursor = Cursors.Default; }
+        if (IsDisposed) return;
 
         if (!ketQua.ThanhCong)
         {

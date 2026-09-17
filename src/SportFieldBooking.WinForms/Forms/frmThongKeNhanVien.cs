@@ -59,26 +59,35 @@ public partial class frmThongKeNhanVien : BaseForm
         cboKieuBieuDo.SelectedIndex = 0;
     }
 
-    protected override void TaiDuLieu() => TaiDuLieuThongKe();
+    protected override Task TaiDuLieuAsync() => TaiDuLieuThongKeAsync();
 
-    private void TaiDuLieuThongKe()
+    private async Task TaiDuLieuThongKeAsync()
     {
-        ThucHien(() =>
-        {
-            DateTime tuNgay = dtpTuNgay.Value.Date;
-            DateTime denNgay = dtpDenNgay.Value.Date;
+        DateTime tuNgay = dtpTuNgay.Value.Date;
+        DateTime denNgay = dtpDenNgay.Value.Date;
 
-            _tongQuan = ServiceFactory.ThongKe.LayTongQuan(tuNgay, denNgay);
-            _doanhThuNgay = ServiceFactory.ThongKe.DoanhThuTheoNgay(tuNgay, denNgay);
-            _thongKeGiamGia = ServiceFactory.ThongKe.ThongKeTheoLoaiGiam(tuNgay, denNgay);
-            _thongKeSan = ServiceFactory.ThongKe.ThongKeTheoSan(tuNgay, denNgay, 5);
+        BatDauBan();
+        try
+        {
+            var ketQua = await ChayNenAsync(() => (
+                tongQuan: ServiceFactory.ThongKe.LayTongQuan(tuNgay, denNgay),
+                doanhThu: ServiceFactory.ThongKe.DoanhThuTheoNgay(tuNgay, denNgay),
+                giamGia: ServiceFactory.ThongKe.ThongKeTheoLoaiGiam(tuNgay, denNgay),
+                topSan: ServiceFactory.ThongKe.ThongKeTheoSan(tuNgay, denNgay, 5)));
+
+            _tongQuan = ketQua.tongQuan;
+            _doanhThuNgay = ketQua.doanhThu;
+            _thongKeGiamGia = ketQua.giamGia;
+            _thongKeSan = ketQua.topSan;
 
             HienThiKpi();
             Luoi.GanDuLieu(dgvChiTietNgay, _doanhThuNgay);
             Luoi.GanDuLieu(dgvTopSan, _thongKeSan);
             Luoi.GanDuLieu(dgvGiamGia, _thongKeGiamGia);
             VeBieuDo();
-        }, "Không thể tải dữ liệu thống kê");
+        }
+        catch (Exception ex) { BaoLoi("Không thể tải dữ liệu thống kê", ex); }
+        finally { KetThucBan(); }
     }
 
     private void HienThiKpi()
@@ -119,14 +128,14 @@ public partial class frmThongKeNhanVien : BaseForm
     {
         dtpTuNgay.Value = DateTime.Today;
         dtpDenNgay.Value = DateTime.Today;
-        TaiDuLieuThongKe();
+        _ = TaiDuLieuThongKeAsync();
     }
 
     private void btnBayNgay_Click(object sender, EventArgs e)
     {
         dtpTuNgay.Value = DateTime.Today.AddDays(-6);
         dtpDenNgay.Value = DateTime.Today;
-        TaiDuLieuThongKe();
+        _ = TaiDuLieuThongKeAsync();
     }
 
     private void btnThangNay_Click(object sender, EventArgs e)
@@ -134,12 +143,12 @@ public partial class frmThongKeNhanVien : BaseForm
         DateTime homNay = DateTime.Today;
         dtpTuNgay.Value = new DateTime(homNay.Year, homNay.Month, 1);
         dtpDenNgay.Value = homNay;
-        TaiDuLieuThongKe();
+        _ = TaiDuLieuThongKeAsync();
     }
 
-    private void btnLamMoi_Click(object sender, EventArgs e) => TaiDuLieuThongKe();
+    private void btnLamMoi_Click(object sender, EventArgs e) => _ = TaiDuLieuThongKeAsync();
 
-    private void btnXem_Click(object sender, EventArgs e) => TaiDuLieuThongKe();
+    private void btnXem_Click(object sender, EventArgs e) => _ = TaiDuLieuThongKeAsync();
 
     private void cboKieuBieuDo_SelectedIndexChanged(object sender, EventArgs e) => VeBieuDo();
 

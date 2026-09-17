@@ -47,7 +47,7 @@ public partial class frmVoucher : BaseForm
         cboTrangThai.SelectedIndex = 0;
     }
 
-    protected override void TaiDuLieu() => TimKiem();
+    protected override Task TaiDuLieuAsync() => TimKiemAsync();
 
     protected override void CapNhatTrangThaiNut()
     {
@@ -74,18 +74,22 @@ public partial class frmVoucher : BaseForm
         dgvVoucher.Enabled = !dangSua;
     }
 
-    private void TimKiem()
+    private async Task TimKiemAsync()
     {
-        ThucHien(() =>
+        string tuKhoa = txtTimKiem.Text.Trim();
+        bool chiConHan = chkChiConHan.Checked;
+        BatDauBan();
+        try
         {
-            List<Voucher> danhSach = chkChiConHan.Checked
-                ? ServiceFactory.Voucher.LayVoucherCoTheDung(txtTimKiem.Text.Trim())
-                : ServiceFactory.Voucher.LayTatCa(txtTimKiem.Text.Trim());
-
+            var danhSach = await ChayNenAsync(() => chiConHan
+                ? ServiceFactory.Voucher.LayVoucherCoTheDung(tuKhoa)
+                : ServiceFactory.Voucher.LayTatCa(tuKhoa));
             Luoi.GanDuLieu(dgvVoucher, danhSach);
             HienThiChiTiet();
             CapNhatTrangThaiNut();
-        }, "Không thể tải danh sách voucher");
+        }
+        catch (Exception ex) { BaoLoi("Không thể tải danh sách voucher", ex); }
+        finally { KetThucBan(); }
     }
 
     private void HienThiChiTiet()
@@ -147,18 +151,18 @@ public partial class frmVoucher : BaseForm
         CapNhatTrangThaiNut();
     }
 
-    private void btnXoa_Click(object sender, EventArgs e)
+    private async void btnXoa_Click(object sender, EventArgs e)
     {
         Voucher dangChon = Luoi.LayDongDangChon<Voucher>(dgvVoucher);
         if (dangChon == null || !CoQuyen(MaQuyen.VoucherXoa)) return;
         if (!XacNhan($"Xóa voucher \"{dangChon.MaCode}\"?", "Xác nhận xóa")) return;
 
-        ThucHien(ServiceFactory.Voucher.Xoa(dangChon.MaVoucher));
+        await ThucHienAsync(() => ServiceFactory.Voucher.Xoa(dangChon.MaVoucher));
         _cheDo = CheDo.Xem;
-        TimKiem();
+        _ = TimKiemAsync();
     }
 
-    private void btnLuu_Click(object sender, EventArgs e)
+    private async void btnLuu_Click(object sender, EventArgs e)
     {
         if (!HopLe()) return;
 
@@ -180,7 +184,7 @@ public partial class frmVoucher : BaseForm
         bool thanhCong;
         if (_cheDo == CheDo.Them)
         {
-            thanhCong = ThucHien(ServiceFactory.Voucher.Them(voucher));
+            thanhCong = await ThucHienAsync(() => ServiceFactory.Voucher.Them(voucher));
         }
         else
         {
@@ -188,12 +192,12 @@ public partial class frmVoucher : BaseForm
             if (dangChon == null) return;
             voucher.MaVoucher = dangChon.MaVoucher;
             voucher.SoLuongDaDung = dangChon.SoLuongDaDung;
-            thanhCong = ThucHien(ServiceFactory.Voucher.CapNhat(voucher));
+            thanhCong = await ThucHienAsync(() => ServiceFactory.Voucher.CapNhat(voucher));
         }
 
         if (!thanhCong) return;
         _cheDo = CheDo.Xem;
-        TimKiem();
+        _ = TimKiemAsync();
     }
 
     private bool HopLe()
@@ -230,16 +234,16 @@ public partial class frmVoucher : BaseForm
     {
         txtTimKiem.Clear();
         _cheDo = CheDo.Xem;
-        TimKiem();
+        _ = TimKiemAsync();
     }
 
-    private void btnTim_Click(object sender, EventArgs e) => TimKiem();
+    private void btnTim_Click(object sender, EventArgs e) => _ = TimKiemAsync();
 
-    private void chkChiConHan_CheckedChanged(object sender, EventArgs e) => TimKiem();
+    private void chkChiConHan_CheckedChanged(object sender, EventArgs e) => _ = TimKiemAsync();
 
     private void txtTimKiem_KeyDown(object sender, KeyEventArgs e)
     {
-        if (e.KeyCode == Keys.Enter) TimKiem();
+        if (e.KeyCode == Keys.Enter) _ = TimKiemAsync();
     }
 
     private void dgvVoucher_SelectionChanged(object sender, EventArgs e)

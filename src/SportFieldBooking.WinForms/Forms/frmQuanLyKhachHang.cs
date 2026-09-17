@@ -36,7 +36,7 @@ public partial class frmQuanLyKhachHang : BaseForm
         Luoi.DatDinhDangNgay(dgvKhachHang, "dd/MM/yyyy", "NgayTao");
     }
 
-    protected override void TaiDuLieu() => TimKiem();
+    protected override Task TaiDuLieuAsync() => TimKiemAsync();
 
     protected override void CapNhatTrangThaiNut()
     {
@@ -57,14 +57,19 @@ public partial class frmQuanLyKhachHang : BaseForm
         dgvKhachHang.Enabled = !dangSua;
     }
 
-    private void TimKiem()
+    private async Task TimKiemAsync()
     {
-        ThucHien(() =>
+        string tuKhoa = txtTimKiem.Text.Trim();
+        BatDauBan();
+        try
         {
-            Luoi.GanDuLieu(dgvKhachHang, ServiceFactory.KhachHang.LayTatCa(txtTimKiem.Text.Trim()));
+            var danhSach = await ChayNenAsync(() => ServiceFactory.KhachHang.LayTatCa(tuKhoa));
+            Luoi.GanDuLieu(dgvKhachHang, danhSach);
             HienThiChiTiet();
             CapNhatTrangThaiNut();
-        }, "Không thể tải danh sách khách hàng");
+        }
+        catch (Exception ex) { BaoLoi("Không thể tải danh sách khách hàng", ex); }
+        finally { KetThucBan(); }
     }
 
     private void HienThiChiTiet()
@@ -112,18 +117,18 @@ public partial class frmQuanLyKhachHang : BaseForm
         CapNhatTrangThaiNut();
     }
 
-    private void btnXoa_Click(object sender, EventArgs e)
+    private async void btnXoa_Click(object sender, EventArgs e)
     {
         KhachHang dangChon = Luoi.LayDongDangChon<KhachHang>(dgvKhachHang);
         if (dangChon == null || !CoQuyen(MaQuyen.KhXoa)) return;
         if (!XacNhan($"Xóa khách hàng \"{dangChon.HoTen}\"?", "Xác nhận xóa")) return;
 
-        ThucHien(ServiceFactory.KhachHang.Xoa(dangChon.MaKH));
+        await ThucHienAsync(() => ServiceFactory.KhachHang.Xoa(dangChon.MaKH));
         _cheDo = CheDo.Xem;
-        TimKiem();
+        _ = TimKiemAsync();
     }
 
-    private void btnLuu_Click(object sender, EventArgs e)
+    private async void btnLuu_Click(object sender, EventArgs e)
     {
         if (!HopLe()) return;
 
@@ -138,19 +143,19 @@ public partial class frmQuanLyKhachHang : BaseForm
         bool thanhCong;
         if (_cheDo == CheDo.Them)
         {
-            thanhCong = ThucHien(ServiceFactory.KhachHang.Them(khachHang));
+            thanhCong = await ThucHienAsync(() => ServiceFactory.KhachHang.Them(khachHang));
         }
         else
         {
             KhachHang dangChon = Luoi.LayDongDangChon<KhachHang>(dgvKhachHang);
             if (dangChon == null) return;
             khachHang.MaKH = dangChon.MaKH;
-            thanhCong = ThucHien(ServiceFactory.KhachHang.CapNhat(khachHang));
+            thanhCong = await ThucHienAsync(() => ServiceFactory.KhachHang.CapNhat(khachHang));
         }
 
         if (!thanhCong) return;
         _cheDo = CheDo.Xem;
-        TimKiem();
+        _ = TimKiemAsync();
     }
 
     private bool HopLe()
@@ -174,14 +179,14 @@ public partial class frmQuanLyKhachHang : BaseForm
     {
         txtTimKiem.Clear();
         _cheDo = CheDo.Xem;
-        TimKiem();
+        _ = TimKiemAsync();
     }
 
-    private void btnTim_Click(object sender, EventArgs e) => TimKiem();
+    private void btnTim_Click(object sender, EventArgs e) => _ = TimKiemAsync();
 
     private void txtTimKiem_KeyDown(object sender, KeyEventArgs e)
     {
-        if (e.KeyCode == Keys.Enter) TimKiem();
+        if (e.KeyCode == Keys.Enter) _ = TimKiemAsync();
     }
 
     private void dgvKhachHang_SelectionChanged(object sender, EventArgs e)

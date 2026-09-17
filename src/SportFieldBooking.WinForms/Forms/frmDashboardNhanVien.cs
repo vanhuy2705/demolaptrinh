@@ -37,15 +37,26 @@ public partial class frmDashboardNhanVien : BaseForm
         Luoi.ToMauTrangThai(dgvHomNay, "TrangThai");
     }
 
-    protected override void TaiDuLieu() => TaiTongQuan();
+    protected override Task TaiDuLieuAsync() => TaiTongQuanAsync();
 
-    private void TaiTongQuan()
+    private async Task TaiTongQuanAsync()
     {
-        ThucHien(() =>
-        {
-            DateTime homNay = DateTime.Today;
-            TongQuan tongQuan = ServiceFactory.ThongKe.LayTongQuan(homNay.AddDays(-29), homNay);
+        DateTime homNay = DateTime.Today;
 
+        BatDauBan();
+        try
+        {
+            var dulieu = await ChayNenAsync(() =>
+            {
+                ServiceFactory.DatSan.CapNhatBookingDangSuDung();
+                return (
+                    tongQuan: ServiceFactory.ThongKe.LayTongQuan(homNay.AddDays(-29), homNay),
+                    doanhThu: ServiceFactory.ThongKe.DoanhThuTheoNgay(homNay.AddDays(-6), homNay),
+                    topSan: ServiceFactory.ThongKe.ThongKeTheoSan(homNay.AddDays(-29), homNay, 5),
+                    lichHomNay: ServiceFactory.DatSan.LayTheoNgay(homNay));
+            });
+
+            TongQuan tongQuan = dulieu.tongQuan;
             kpiDoanhThu.DatNoiDung("Doanh thu hôm nay", TroGiup.Tien(tongQuan.DoanhThuHomNay),
                 $"30 ngày: {TroGiup.Tien(tongQuan.DoanhThuTrongKy)}");
             kpiBooking.DatNoiDung("Booking hôm nay", tongQuan.BookingHomNay.ToString(),
@@ -55,10 +66,9 @@ public partial class frmDashboardNhanVien : BaseForm
             kpiSan.DatNoiDung("Tình trạng sân", $"{tongQuan.SanTrong}/{tongQuan.TongSoSan} trống",
                 $"Đang thuê: {tongQuan.SanDangThue}  |  Bảo trì: {tongQuan.SanBaoTri}");
 
-            List<DoanhThuNgay> doanhThu = ServiceFactory.ThongKe.DoanhThuTheoNgay(homNay.AddDays(-6), homNay);
             BieuDo.VeDuong(plotDoanhThu,
-                doanhThu.Select(d => d.Ngay.ToString("dd/MM")).ToList(),
-                doanhThu.Select(d => (double)d.DoanhThu).ToList(),
+                dulieu.doanhThu.Select(d => d.Ngay.ToString("dd/MM")).ToList(),
+                dulieu.doanhThu.Select(d => (double)d.DoanhThu).ToList(),
                 "Doanh thu", "#0F766E", "Doanh thu 7 ngày gần nhất");
 
             BieuDo.VeTron(plotSan,
@@ -66,16 +76,16 @@ public partial class frmDashboardNhanVien : BaseForm
                 new List<double> { tongQuan.SanTrong, tongQuan.SanDangThue, tongQuan.SanBaoTri },
                 "Tình trạng sân");
 
-            List<ThongKeSan> topSan = ServiceFactory.ThongKe.ThongKeTheoSan(homNay.AddDays(-29), homNay, 5);
             BieuDo.VeCot(plotTopSan,
-                topSan.Select(s => s.TenSan).ToList(),
-                topSan.Select(s => (double)s.DoanhThu).ToList(),
+                dulieu.topSan.Select(x => x.TenSan).ToList(),
+                dulieu.topSan.Select(x => (double)x.DoanhThu).ToList(),
                 "Doanh thu", "#16A34A", "Top sân 30 ngày", "VNĐ");
 
-            ServiceFactory.DatSan.CapNhatBookingDangSuDung();
-            Luoi.GanDuLieu(dgvHomNay, ServiceFactory.DatSan.LayTheoNgay(homNay));
-        }, "Không thể tải dữ liệu tổng quan");
+            Luoi.GanDuLieu(dgvHomNay, dulieu.lichHomNay);
+        }
+        catch (Exception ex) { BaoLoi("Không thể tải dữ liệu tổng quan", ex); }
+        finally { KetThucBan(); }
     }
 
-    private void btnLamMoi_Click(object sender, EventArgs e) => TaiTongQuan();
+    private void btnLamMoi_Click(object sender, EventArgs e) => _ = TaiTongQuanAsync();
 }

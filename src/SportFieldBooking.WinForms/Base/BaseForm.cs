@@ -111,10 +111,12 @@ public partial class BaseForm : Form
 
     // --- Lớp phủ "đang tải" ---
     private Panel? _lopPhu;
+    private int _soLuotBan;
 
     /// <summary>Phủ một lớp mờ + chữ "Đang tải…" để chặn thao tác lặp trong lúc chờ.</summary>
     protected void BatDauBan()
     {
+        _soLuotBan++;
         if (_lopPhu != null || IsDisposed) return;
         _lopPhu = new Panel
         {
@@ -139,7 +141,8 @@ public partial class BaseForm : Form
 
     protected void KetThucBan()
     {
-        if (_lopPhu == null) return;
+        if (_soLuotBan > 0) _soLuotBan--;
+        if (_lopPhu == null || _soLuotBan > 0) return;
         var phu = _lopPhu;
         _lopPhu = null;
         Controls.Remove(phu);

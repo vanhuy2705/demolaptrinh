@@ -33,9 +33,16 @@ public partial class frmChiTietDatSan : BaseForm
         dtpGioKetThuc.ShowUpDown = true;
     }
 
-    protected override void TaiDuLieu()
+    protected override async Task TaiDuLieuAsync()
     {
-        _datSan = ServiceFactory.DatSan.LayTheoMa(_maDat);
+        BatDauBan();
+        try
+        {
+            _datSan = await ChayNenAsync(() => ServiceFactory.DatSan.LayTheoMa(_maDat));
+        }
+        catch (Exception ex) { BaoLoi("Không thể tải chi tiết booking", ex); KetThucBan(); return; }
+        KetThucBan();
+
         if (_datSan == null)
         {
             CanhBao("Không tìm thấy booking #" + _maDat + ".");
@@ -87,7 +94,7 @@ public partial class frmChiTietDatSan : BaseForm
         txtGhiChu.ReadOnly = !btnLuu.Enabled;
     }
 
-    private void btnLuu_Click(object sender, EventArgs e)
+    private async void btnLuu_Click(object sender, EventArgs e)
     {
         if (_datSan == null) return;
         if (!CoQuyen(MaQuyen.DatSanSua)) return;
@@ -97,13 +104,13 @@ public partial class frmChiTietDatSan : BaseForm
         _datSan.GioKetThuc = TroGiup.LayGio(dtpGioKetThuc);
         _datSan.GhiChu = txtGhiChu.Text.Trim();
 
-        if (!ThucHien(ServiceFactory.DatSan.CapNhatDatSan(_datSan))) return;
+        if (!await ThucHienAsync(() => ServiceFactory.DatSan.CapNhatDatSan(_datSan))) return;
 
         DialogResult = DialogResult.OK;
         Close();
     }
 
-    private void btnHuyBooking_Click(object sender, EventArgs e)
+    private async void btnHuyBooking_Click(object sender, EventArgs e)
     {
         if (_datSan == null) return;
         if (!CoQuyen(MaQuyen.DatSanHuy)) return;
@@ -112,7 +119,7 @@ public partial class frmChiTietDatSan : BaseForm
             "Lý do hủy (không bắt buộc):", "Khách hủy", false, this);
         if (lyDo == null) return;
 
-        if (!ThucHien(ServiceFactory.DatSan.HuyDatSan(_datSan.MaDat, lyDo))) return;
+        if (!await ThucHienAsync(() => ServiceFactory.DatSan.HuyDatSan(_datSan.MaDat, lyDo))) return;
 
         DialogResult = DialogResult.OK;
         Close();
@@ -126,11 +133,18 @@ public partial class frmChiTietDatSan : BaseForm
 
     private void ThayDoiThoiGian(object sender, EventArgs e) => CapNhatTienTamTinh();
 
-    private void CapNhatTienTamTinh()
+    private async void CapNhatTienTamTinh()
     {
         if (_datSan == null) return;
-        KetQua<ChiTietTien> ketQua = ServiceFactory.TinhTien.TinhTien(_datSan.MaSan, dtpNgayDat.Value.Date,
-            TroGiup.LayGio(dtpGioBatDau), TroGiup.LayGio(dtpGioKetThuc), "");
+
+        int maSan = _datSan.MaSan;
+        DateTime ngay = dtpNgayDat.Value.Date;
+        TimeSpan gioBatDau = TroGiup.LayGio(dtpGioBatDau), gioKetThuc = TroGiup.LayGio(dtpGioKetThuc);
+
+        KetQua<ChiTietTien> ketQua = await ChayNenAsync(() =>
+            ServiceFactory.TinhTien.TinhTien(maSan, ngay, gioBatDau, gioKetThuc, ""));
+        if (IsDisposed) return;
+
         lblTienTamTinh.Text = ketQua.ThanhCong
             ? TroGiup.Tien(ketQua.DuLieu.TienGoc) + $" ({ketQua.DuLieu.SoGio:0.##} giờ)"
             : ketQua.ThongBao;

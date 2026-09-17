@@ -49,23 +49,24 @@ public partial class frmHoaDonAdmin : BaseForm
         txtTimKiem.PlaceholderText = "Tìm theo tên khách, mã voucher, mã hóa đơn...";
     }
 
-    protected override void TaiDuLieu()
+    protected override async Task TaiDuLieuAsync()
     {
-        NapBookingChuaLap();
-        TimKiem();
+        await NapBookingChuaLapAsync();
+        await TimKiemAsync();
     }
 
-    private void NapBookingChuaLap()
+    private async Task NapBookingChuaLapAsync()
     {
-        ThucHien(() =>
+        BatDauBan();
+        try
         {
-            cboBookingChuaLap.Items.Clear();
-            List<DatSan> chuaThanhToan = ServiceFactory.DatSan.LayTheoKhoang(
+            List<DatSan> chuaThanhToan = await ChayNenAsync(() => ServiceFactory.DatSan.LayTheoKhoang(
                     DateTime.Today.AddDays(-7), DateTime.Today, null, null)
                 .Where(d => d.TrangThai == TrangThaiDatSan.DaDat || d.TrangThai == TrangThaiDatSan.DangSuDung)
                 .Where(d => ServiceFactory.HoaDon.LayTheoMaDat(d.MaDat) == null)
-                .ToList();
+                .ToList());
 
+            cboBookingChuaLap.Items.Clear();
             foreach (DatSan d in chuaThanhToan)
                 cboBookingChuaLap.Items.Add(new MucBooking(d.MaDat,
                     $"#{d.MaDat} | {d.TenSan} | {d.NgayDat:dd/MM} {d.GioBatDau:hh\\:mm}-{d.GioKetThuc:hh\\:mm} | {d.TenKH}"));
@@ -75,7 +76,9 @@ public partial class frmHoaDonAdmin : BaseForm
             cboBookingChuaLap.Enabled = chuaThanhToan.Count > 0;
             if (chuaThanhToan.Count == 0) cboBookingChuaLap.Items.Add("(Không có booking chờ lập hóa đơn)");
             cboBookingChuaLap.SelectedIndex = 0;
-        }, "Không thể tải booking chờ lập hóa đơn");
+        }
+        catch (Exception ex) { BaoLoi("Không thể tải booking chờ lập hóa đơn", ex); }
+        finally { KetThucBan(); }
     }
 
     private sealed class MucBooking
@@ -102,23 +105,26 @@ public partial class frmHoaDonAdmin : BaseForm
             && PhanQuyenService.CoQuyen(MaQuyen.HdLap);
     }
 
-    private void TimKiem()
+    private async Task TimKiemAsync()
     {
-        ThucHien(() =>
+        string trangThai = cboTrangThai.SelectedIndex switch
         {
-            string trangThai = cboTrangThai.SelectedIndex switch
-            {
-                1 => TrangThaiHoaDon.ChuaThanhToan,
-                2 => TrangThaiHoaDon.DaThanhToan,
-                3 => TrangThaiHoaDon.DaHuy,
-                _ => null
-            };
+            1 => TrangThaiHoaDon.ChuaThanhToan,
+            2 => TrangThaiHoaDon.DaThanhToan,
+            3 => TrangThaiHoaDon.DaHuy,
+            _ => null
+        };
+        DateTime tuNgay = dtpTuNgay.Value.Date, denNgay = dtpDenNgay.Value.Date;
+        string tuKhoa = txtTimKiem.Text.Trim().ToLowerInvariant();
 
-            _danhSach = ServiceFactory.HoaDon.LayTheoKhoang(dtpTuNgay.Value.Date, dtpDenNgay.Value.Date, trangThai);
+        BatDauBan();
+        try
+        {
+            _danhSach = await ChayNenAsync(() =>
+                ServiceFactory.HoaDon.LayTheoKhoang(tuNgay, denNgay, trangThai));
 
-            if (!string.IsNullOrWhiteSpace(txtTimKiem.Text))
+            if (!string.IsNullOrEmpty(tuKhoa))
             {
-                string tuKhoa = txtTimKiem.Text.Trim().ToLowerInvariant();
                 _danhSach = _danhSach.Where(h =>
                     (h.TenKH ?? "").ToLowerInvariant().Contains(tuKhoa) ||
                     (h.MaCode ?? "").ToLowerInvariant().Contains(tuKhoa) ||
@@ -128,7 +134,9 @@ public partial class frmHoaDonAdmin : BaseForm
             Luoi.GanDuLieu(dgvHoaDon, _danhSach);
             ThongKeNhanh();
             CapNhatTrangThaiNut();
-        }, "Không thể tải danh sách hóa đơn");
+        }
+        catch (Exception ex) { BaoLoi("Không thể tải danh sách hóa đơn", ex); }
+        finally { KetThucBan(); }
     }
 
     private void ThongKeNhanh()
@@ -141,7 +149,7 @@ public partial class frmHoaDonAdmin : BaseForm
                           $"Chưa thu: {TroGiup.Tien(chuaThu)}  |  Giảm giá: {TroGiup.Tien(tongGiam)}";
     }
 
-    private void btnLapHoaDon_Click(object sender, EventArgs e)
+    private async void btnLapHoaDon_Click(object sender, EventArgs e)
     {
         if (cboBookingChuaLap.SelectedItem is not MucBooking muc) return;
         if (!CoQuyen(MaQuyen.HdLap)) return;
@@ -149,12 +157,15 @@ public partial class frmHoaDonAdmin : BaseForm
         string maVoucher = frmNhapLieu.NhapChuoi("Lập hóa đơn", "Mã voucher (để trống nếu không có):", "", false, this);
         if (maVoucher == null) return;
 
-        var ketQua = ServiceFactory.HoaDon.LapHoaDon(muc.MaDat, maVoucher.Trim());
+        int maDat = muc.MaDat;
+        string voucher = maVoucher.Trim();
+        var ketQua = await ChayNenAsync(() => ServiceFactory.HoaDon.LapHoaDon(maDat, voucher));
+        if (IsDisposed) return;
         if (!ThucHien(ketQua)) return;
 
         using var chiTiet = new frmChiTietHoaDon(ketQua.DuLieu.MaHD, coQuyenThuTien: true);
         chiTiet.ShowDialog(this);
-        TaiDuLieu();
+        _ = TaiDuLieuAsync();
     }
 
     private void btnChiTiet_Click(object sender, EventArgs e)
@@ -162,7 +173,7 @@ public partial class frmHoaDonAdmin : BaseForm
         int maHD = Luoi.LayMaDangChon(dgvHoaDon, "MaHD");
         if (maHD <= 0) return;
         using var chiTiet = new frmChiTietHoaDon(maHD, coQuyenThuTien: true);
-        if (chiTiet.ShowDialog(this) == DialogResult.OK) TaiDuLieu();
+        if (chiTiet.ShowDialog(this) == DialogResult.OK) _ = TaiDuLieuAsync();
     }
 
     private void btnThanhToan_Click(object sender, EventArgs e)
@@ -172,16 +183,18 @@ public partial class frmHoaDonAdmin : BaseForm
         if (!CoQuyen(MaQuyen.HdThanhToan)) return;
 
         using var chiTiet = new frmChiTietHoaDon(dangChon.MaHD, coQuyenThuTien: true);
-        if (chiTiet.ShowDialog(this) == DialogResult.OK) TaiDuLieu();
+        if (chiTiet.ShowDialog(this) == DialogResult.OK) _ = TaiDuLieuAsync();
     }
 
-    private void btnIn_Click(object sender, EventArgs e)
+    private async void btnIn_Click(object sender, EventArgs e)
     {
         HoaDon dangChon = Luoi.LayDongDangChon<HoaDon>(dgvHoaDon);
         if (dangChon == null) return;
         if (!CoQuyen(MaQuyen.HdIn)) return;
 
-        ThucHien(() => InHoaDon.XemTruoc(dangChon, LayThongTinCuaHang()), "Không thể xem trước hóa đơn");
+        var thongTin = await ChayNenAsync(() => LayThongTinCuaHang());
+        if (IsDisposed) return;
+        ThucHien(() => InHoaDon.XemTruoc(dangChon, thongTin), "Không thể xem trước hóa đơn");
     }
 
     private static InHoaDon.ThongTinCuaHang LayThongTinCuaHang() => new()
@@ -192,33 +205,33 @@ public partial class frmHoaDonAdmin : BaseForm
         LoiChao = ServiceFactory.CauHinh.LayGiaTri(ThamSoKeys.LoiChaoHoaDon, "Cảm ơn quý khách, hẹn gặp lại!")
     };
 
-    private void btnXoa_Click(object sender, EventArgs e)
+    private async void btnXoa_Click(object sender, EventArgs e)
     {
         HoaDon dangChon = Luoi.LayDongDangChon<HoaDon>(dgvHoaDon);
         if (dangChon == null) return;
         if (!CoQuyen(MaQuyen.HdXoa)) return;
         if (!XacNhan($"Hủy hóa đơn #{dangChon.MaHD}?", "Xác nhận hủy hóa đơn")) return;
 
-        ThucHien(ServiceFactory.HoaDon.HuyHoaDon(dangChon.MaHD, "Hủy từ danh sách hóa đơn"));
-        TaiDuLieu();
+        await ThucHienAsync(() => ServiceFactory.HoaDon.HuyHoaDon(dangChon.MaHD, "Hủy từ danh sách hóa đơn"));
+        _ = TaiDuLieuAsync();
     }
 
     private void btnLamMoi_Click(object sender, EventArgs e)
     {
         txtTimKiem.Clear();
-        TaiDuLieu();
+        _ = TaiDuLieuAsync();
     }
 
-    private void btnTim_Click(object sender, EventArgs e) => TimKiem();
+    private void btnTim_Click(object sender, EventArgs e) => _ = TimKiemAsync();
 
     private void LocThayDoi(object sender, EventArgs e)
     {
-        if (IsHandleCreated) TimKiem();
+        if (IsHandleCreated) _ = TimKiemAsync();
     }
 
     private void txtTimKiem_KeyDown(object sender, KeyEventArgs e)
     {
-        if (e.KeyCode == Keys.Enter) TimKiem();
+        if (e.KeyCode == Keys.Enter) _ = TimKiemAsync();
     }
 
     private void dgvHoaDon_SelectionChanged(object sender, EventArgs e) => CapNhatTrangThaiNut();
