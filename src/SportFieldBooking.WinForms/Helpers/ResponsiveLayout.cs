@@ -1,5 +1,6 @@
 #nullable enable
 using System.Drawing.Drawing2D;
+using System.Runtime.CompilerServices;
 
 namespace SportFieldBooking.WinForms.Helpers;
 
@@ -894,12 +895,22 @@ public static class ResponsiveLayout
         bool coConFill = pnl.Controls.Cast<Control>().Any(c => c.Dock == DockStyle.Fill);
         int canCao = thap + pnl.Padding.Bottom;
 
+        // QUAN TRỌNG: chiều cao khả dụng phải TRỪ đi phần các con Dock=Top/Bottom chiếm chỗ.
+        // Trước đây so sánh với ClientSize.Height nên panel có thanh nút Dock=Bottom
+        // (ví dụ pnlPhai của frmQuanLyNhanVien: 11 hàng trường ~541px + pnlNut 180px
+        //  trong panel cao 610px) không bật cuộn => các trường cuối bị thanh nút ĐÈ LÊN.
+        int chiemCho = 0;
+        foreach (Control c in pnl.Controls)
+            if (c.Visible && c.Dock is DockStyle.Top or DockStyle.Bottom)
+                chiemCho += c.Height;
+        int khaDung = pnl.ClientSize.Height - chiemCho;
+
         if (pnl.Dock is DockStyle.None or DockStyle.Top or DockStyle.Bottom && canCao > pnl.Height)
             pnl.Height = canCao;
 
         if (!coConFill && pnl.Dock != DockStyle.Fill)
         {
-            if (canCao > pnl.ClientSize.Height) pnl.AutoScroll = true;
+            if (canCao > khaDung) pnl.AutoScroll = true;
             if (phaiNhat + pnl.Padding.Right > pnl.ClientSize.Width) pnl.AutoScroll = true;
         }
     }
@@ -917,6 +928,9 @@ public static class ResponsiveLayout
                 GanXuLyResize(p);
                 XepLaiHang(p);
             }
+
+        // Nhóm thẻ KPI / biểu đồ: chia lại theo bề rộng thật (không phụ thuộc tên form).
+        if (root is Panel pnlThe) SapThe(pnlThe);
 
         // Đệ quy trước rồi mới đo cha: kích thước con đã chốt thì cha mới tính đúng.
         foreach (Control c in root.Controls) TuDongDanTrang(c);
@@ -975,6 +989,130 @@ public static class ResponsiveLayout
             if (child is T wanted) yield return wanted;
             foreach (T nested in TimTatCa<T>(child)) yield return nested;
         }
+    }
+
+    // ======================= NHÓM THẺ (KPI / BIỂU ĐỒ) =======================
+    // Trước đây chỉ frmTrangChuKhachHang được xếp lại thẻ; các form khác
+    // (frmDashboardAdmin/NhanVien, frmThongKe*, frmThongTinCaNhan) chỉ được đổi kích
+    // thước PANEL, còn 4 thẻ vẫn nằm ở toạ độ thiết kế x = 0/296/592/888 (tổng 1168px).
+    // Vùng nội dung thật chỉ ~1008px (1280 - sidebar 240 - padding) nên thẻ cuối bị
+    // CẮT hoặc ĐÈ lên nhau. Pass này áp dụng cho MỌI panel có >= 2 thẻ, không cần
+    // khai báo tên form, nên form mới sau này cũng tự đúng.
+
+    private static readonly HashSet<string> TenLoaiThe = new(StringComparer.Ordinal)
+    {
+        "KpiCard", "FormsPlot"
+    };
+
+    /// <summary>Số đo thiết kế của thẻ. Dùng ConditionalWeakTable để không giẫm lên Tag nghiệp vụ.</summary>
+    private static readonly ConditionalWeakTable<Control, int[]> KichThuocTheGoc = new();
+
+    private static readonly HashSet<Panel> _dangSapThe = new();
+
+    private static bool LaThe(Control c) => TenLoaiThe.Contains(c.GetType().Name);
+
+    private static int[] LayTheGoc(Control c)
+    {
+        if (KichThuocTheGoc.TryGetValue(c, out int[]? luu) && luu.Length == 4) return luu;
+        var moi = new[] { c.Left, c.Top, c.Width, c.Height };
+        KichThuocTheGoc.AddOrUpdate(c, moi);
+        return moi;
+    }
+
+    private static void SapThe(Panel pnl)
+    {
+        if (pnl == null || pnl.IsDisposed || !_dangSapThe.Add(pnl)) return;
+        try
+        {
+            var the = new List<Control>();
+            foreach (Control c in pnl.Controls)
+                if (c.Visible && c.Dock == DockStyle.None && LaThe(c)) the.Add(c);
+            if (the.Count < 2) return;
+
+            foreach (Control c in the) LayTheGoc(c);                        // chốt số đo thiết kế một lần
+            the.Sort((a, b) => LayTheGoc(a)[0].CompareTo(LayTheGoc(b)[0]));  // giữ thứ tự trái -> phải
+
+            int gap = 14;
+            int w = pnl.ClientSize.Width - pnl.Padding.Horizontal;
+            if (w < 120) return;
+
+            bool coBieuDo = the.Exists(c => string.Equals(c.GetType().Name, "FormsPlot", StringComparison.Ordinal));
+            int minRong = coBieuDo ? 280 : 180;
+
+            // Số cột tối đa sao cho mỗi thẻ vẫn đạt bề rộng tối thiểu (chia đều).
+            int cot = the.Count;
+            while (cot > 1 && (w - gap * (cot - 1)) / cot < minRong) cot--;
+
+            pnl.SuspendLayout();
+            try
+            {
+                int tongCao;
+                if (cot >= the.Count)
+                {
+                    // Một hàng: chia theo đúng tỉ lệ bề rộng thiết kế
+                    // (biểu đồ 740/428 vẫn giữ tỉ lệ ~2:1 thay vì bị chia đều 50/50).
+                    int tongRong = 0;
+                    foreach (Control c in the) tongRong += Math.Max(1, LayTheGoc(c)[2]);
+
+                    int khaDung = Math.Max(minRong, w - gap * (the.Count - 1));
+
+                    // Chia theo trọng số; nếu có thẻ nào lọt dưới mức tối thiểu
+                    // (ví dụ 3 biểu đồ 560/300/308 trong 1008px) thì quay về chia đều
+                    // để tổng bề rộng không bao giờ vượt khỏi panel.
+                    var chieuRong = new int[the.Count];
+                    bool dungTrongSo = true;
+                    for (int i = 0; i < the.Count; i++)
+                    {
+                        chieuRong[i] = (int)Math.Round((double)khaDung * Math.Max(1, LayTheGoc(the[i])[2]) / tongRong);
+                        if (chieuRong[i] < minRong) dungTrongSo = false;
+                    }
+                    if (!dungTrongSo)
+                        for (int i = 0; i < the.Count; i++)
+                            chieuRong[i] = khaDung / the.Count;
+
+                    int x = pnl.Padding.Left, daDung = 0;
+                    tongCao = 0;
+                    for (int i = 0; i < the.Count; i++)
+                    {
+                        int[] g = LayTheGoc(the[i]);
+                        int rong = i == the.Count - 1 ? khaDung - daDung : chieuRong[i];
+                        int phongTo = pnl.ClientSize.Width - pnl.Padding.Right - x;   // chặn tràn cạnh phải
+                        rong = Math.Min(Math.Max(60, rong), Math.Max(60, phongTo));
+                        the[i].Bounds = new Rectangle(x, pnl.Padding.Top, rong, g[3]);
+                        tongCao = Math.Max(tongCao, g[3]);
+                        x += rong + gap;
+                        daDung += rong;
+                    }
+                }
+                else
+                {
+                    // Không đủ bề rộng: xuống hàng và chia đều.
+                    int rong = cot <= 1 ? w : Math.Max(minRong, (w - gap * (cot - 1)) / cot);
+                    int y = pnl.Padding.Top;
+                    for (int hang = 0; hang * cot < the.Count; hang++)
+                    {
+                        int caoHang = 0, x = pnl.Padding.Left;
+                        for (int j = 0; j < cot && hang * cot + j < the.Count; j++)
+                        {
+                            Control c = the[hang * cot + j];
+                            int[] g = LayTheGoc(c);
+                            c.Bounds = new Rectangle(x, y, rong, g[3]);
+                            caoHang = Math.Max(caoHang, g[3]);
+                            x += rong + gap;
+                        }
+                        y += caoHang + gap;
+                    }
+                    tongCao = Math.Max(0, y - gap - pnl.Padding.Top);
+                }
+
+                // Chỉ NỚI chiều cao khi thẻ xuống hàng (không bóp lại panel đang đẹp).
+                int canCao = tongCao + pnl.Padding.Vertical;
+                if (pnl.Dock != DockStyle.Fill && canCao > pnl.Height)
+                    pnl.Height = canCao;
+            }
+            finally { pnl.ResumeLayout(true); }
+        }
+        finally { _dangSapThe.Remove(pnl); }
     }
 
     private static void TrangTriNen(Control control)

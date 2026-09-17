@@ -1,3 +1,4 @@
+#nullable enable annotations
 using System.Data;
 using Microsoft.Data.SqlClient;
 

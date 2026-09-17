@@ -1,3 +1,4 @@
+#nullable enable annotations
 using System.Drawing.Drawing2D;
 using SportFieldBooking.WinForms.Controls;
 

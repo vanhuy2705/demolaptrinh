@@ -1,3 +1,4 @@
+#nullable enable annotations
 using System.Text.Json;
 
 namespace SportFieldBooking.WinForms.Helpers;

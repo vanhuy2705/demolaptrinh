@@ -1,3 +1,4 @@
+#nullable enable annotations
 using System.Globalization;
 
 namespace SportFieldBooking.WinForms.Helpers;

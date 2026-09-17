@@ -1,3 +1,4 @@
+#nullable enable annotations
 using SportFieldBooking.Business.Common;
 using SportFieldBooking.Business.Services;
 using SportFieldBooking.WinForms.Forms;
