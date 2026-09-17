@@ -130,6 +130,14 @@ public static class BieuDo
 
         if (!string.IsNullOrWhiteSpace(tieuDe)) bieuDo.Plot.Title(tieuDe);
         bieuDo.Plot.Legend.IsVisible = true;
+
+        // Biểu đồ TRÒN không dùng hệ trục: ẩn lưới + xóa tick số, nếu không
+        // ScottPlot vẽ nguyên khung trục -2..2 / -1.5..1.5 ôm quanh miếng pie.
+        bieuDo.Plot.HideGrid();
+        bieuDo.Plot.Axes.Frameless();
+        bieuDo.Plot.Axes.Bottom.TickGenerator = new ScottPlot.TickGenerators.NumericManual();
+        bieuDo.Plot.Axes.Left.TickGenerator = new ScottPlot.TickGenerators.NumericManual();
+
         ApDungChuDe(bieuDo);
         bieuDo.Refresh();
     }

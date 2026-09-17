@@ -5,6 +5,30 @@ namespace SportFieldBooking.WinForms.Helpers;
 /// <summary>Định dạng DataGridView thống nhất, ưu tiên đọc được dữ liệu trên mọi kích thước.</summary>
 public static class Luoi
 {
+    // Luu lai cac thiet lap (tieu de cot, do rong, dinh dang...) theo tung luoi.
+    // Vi cac form goi chung TRUOC khi bind du lieu (luc chua co cot), nen ta ghi nho
+    // va AP LAI trong DataBindingComplete - khi cot tu sinh da ton tai.
+    private static readonly Dictionary<DataGridView, List<Action>> _cauHinh = new();
+
+    private static void Nho(DataGridView luoi, Action thucHien)
+    {
+        if (luoi == null) return;
+        if (!_cauHinh.TryGetValue(luoi, out var ds))
+        {
+            ds = new List<Action>();
+            _cauHinh[luoi] = ds;
+        }
+        ds.Add(thucHien);
+        thucHien();
+    }
+
+    /// <summary>Ap lai toan bo thiet lap da nho (goi sau khi bind du lieu).</summary>
+    public static void ApDungLai(DataGridView luoi)
+    {
+        if (luoi == null || !_cauHinh.TryGetValue(luoi, out var ds)) return;
+        foreach (Action a in ds.ToArray()) a();
+    }
+
     public static void DoiMau(DataGridView luoi)
     {
         if (luoi == null) return;
@@ -52,7 +76,9 @@ public static class Luoi
 
     private static void Luoi_DataBindingComplete(object? sender, DataGridViewBindingCompleteEventArgs e)
     {
-        if (sender is DataGridView luoi) CanBangCot(luoi);
+        if (sender is not DataGridView luoi) return;
+        ApDungLai(luoi);     // tieu de / do rong / dinh dang phai chay SAU khi cot tu sinh
+        CanBangCot(luoi);
     }
 
     private static void ApDungMau(DataGridView luoi)
@@ -111,38 +137,53 @@ public static class Luoi
 
     public static void DatTieuDe(DataGridView luoi, params (string ThuocTinh, string TieuDe)[] danhSach)
     {
-        foreach (var (thuocTinh, tieuDe) in danhSach)
-            if (luoi.Columns.Contains(thuocTinh)) luoi.Columns[thuocTinh].HeaderText = tieuDe;
+        Nho(luoi, () =>
+        {
+            foreach (var (thuocTinh, tieuDe) in danhSach)
+                if (luoi.Columns.Contains(thuocTinh)) luoi.Columns[thuocTinh].HeaderText = tieuDe;
+        });
     }
 
     public static void AnCot(DataGridView luoi, params string[] tenCot)
     {
-        foreach (string cot in tenCot)
-            if (luoi.Columns.Contains(cot)) luoi.Columns[cot].Visible = false;
+        Nho(luoi, () =>
+        {
+            foreach (string cot in tenCot)
+                if (luoi.Columns.Contains(cot)) luoi.Columns[cot].Visible = false;
+        });
     }
 
     public static void DatDoRong(DataGridView luoi, string tenCot, int doRong)
     {
-        if (!luoi.Columns.Contains(tenCot)) return;
-        luoi.Columns[tenCot].AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
-        luoi.Columns[tenCot].Width = Math.Max(60, doRong);
+        Nho(luoi, () =>
+        {
+            if (!luoi.Columns.Contains(tenCot)) return;
+            luoi.Columns[tenCot].AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
+            luoi.Columns[tenCot].Width = Math.Max(60, doRong);
+        });
     }
 
     public static void DatDinhDangTien(DataGridView luoi, params string[] tenCot)
     {
-        foreach (string cot in tenCot)
+        Nho(luoi, () =>
         {
-            if (!luoi.Columns.Contains(cot)) continue;
-            luoi.Columns[cot].DefaultCellStyle.Format = "N0";
-            luoi.Columns[cot].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
-            luoi.Columns[cot].DefaultCellStyle.Font = GiaoDien.ChuDam;
-        }
+            foreach (string cot in tenCot)
+            {
+                if (!luoi.Columns.Contains(cot)) continue;
+                luoi.Columns[cot].DefaultCellStyle.Format = "N0";
+                luoi.Columns[cot].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+                luoi.Columns[cot].DefaultCellStyle.Font = GiaoDien.ChuDam;
+            }
+        });
     }
 
     public static void DatDinhDangNgay(DataGridView luoi, string dinhDang, params string[] tenCot)
     {
-        foreach (string cot in tenCot)
-            if (luoi.Columns.Contains(cot)) luoi.Columns[cot].DefaultCellStyle.Format = dinhDang;
+        Nho(luoi, () =>
+        {
+            foreach (string cot in tenCot)
+                if (luoi.Columns.Contains(cot)) luoi.Columns[cot].DefaultCellStyle.Format = dinhDang;
+        });
     }
 
     public static void ToMauTrangThai(DataGridView luoi, string tenCot)

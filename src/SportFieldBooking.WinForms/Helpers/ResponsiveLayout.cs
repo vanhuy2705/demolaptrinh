@@ -162,13 +162,18 @@ public static class ResponsiveLayout
         var menu = ConTrucTiep(form, "pnlMenu") as Panel;
         var logo = ConTrucTiep(form, "pnlLogo") as Panel;
         var footer = ConTrucTiep(form, "pnlChan") as Panel;
-        var theme = ConTrucTiep(form, "pnlChuDe") as Panel;
-        var title = ConTrucTiep(form, "lblTieuDeTrang") as Label;
-        var icon = ConTrucTiep(form, "picNguoiDung") as Control;
-        var user = ConTrucTiep(form, "lblTenNguoiDung") as Label;
-        var role = ConTrucTiep(form, "lblVaiTro") as Label;
         var content = ConTrucTiep(form, "pnlNoiDung") as Panel;
         if (sidebar == null || header == null) return;
+
+        // QUAN TRONG: cac control nay la CON CUA header (pnlTren), khong phai con
+        // cua form. Neu tim theo form se tra ve null -> khoi canh header khong chay
+        // -> giu nguyen toa do Designer + Anchor=Right -> khi header rong ra thi
+        // ten/vai tro/icon DE LEN nut chu de va tran meo phai.
+        var theme = Tim(header, "pnlChuDe") as Panel;
+        var title = Tim(header, "lblTieuDeTrang") as Label;
+        var icon = Tim(header, "picNguoiDung") as Control;
+        var user = Tim(header, "lblTenNguoiDung") as Label;
+        var role = Tim(header, "lblVaiTro") as Label;
 
         int totalWidth = Math.Max(760, form.ClientSize.Width);
         int sideWidth = totalWidth >= 1280 ? SidebarWide : totalWidth >= 1040 ? SidebarMedium : SidebarNarrow;
@@ -226,48 +231,54 @@ public static class ResponsiveLayout
                 if (themeButton != null) themeButton.Dock = DockStyle.Fill;
             }
 
-            int rightZone = themeWidth + 12;
-            int userWidth = Math.Min(185, Math.Max(110, hw / 5));
-            int userRight = rightZone + 8;
-            int userLeft = hw - userRight - userWidth;
-            int iconWidth = icon?.Width ?? 36;
-            int iconLeft = userLeft - iconWidth - 12;
-            int titleLeft = title?.Left ?? 24;
-            int titleAvailable = iconLeft - titleLeft - 20;
+            // Vung chu de chiem ben phai; phan con lai chia: tieu de | icon | ten/vai tro.
+            int bienPhai = hw - themeWidth;      // me trai cua vung nut chu de
+            int margin = 14;
 
-            // Ở màn hình rất hẹp, ẩn chữ vai trò nhưng vẫn giữ tài khoản/icon.
-            bool compact = titleAvailable < 190;
+            int stackW = Math.Min(200, Math.Max(120, hw / 6));
+            int stackRight = bienPhai - margin;
+            int stackLeft = Math.Max(220, stackRight - stackW);
+
+            // Man hinh hep: an dong vai tro de ten khong bi cat.
+            bool compact = stackLeft - (title?.Left ?? 24) < 260;
+
             if (user != null)
             {
                 user.AutoSize = false;
                 user.AutoEllipsis = true;
-                user.Left = Math.Max(titleLeft + 190, userLeft);
-                user.Width = Math.Max(90, hw - user.Left - userRight);
+                user.Anchor = AnchorStyles.None;
+                user.Left = stackLeft;
+                user.Width = stackRight - stackLeft;
                 user.TextAlign = ContentAlignment.MiddleRight;
+                user.Top = compact ? (HeaderHeight - user.Height) / 2 : 12;
             }
             if (role != null)
             {
                 role.AutoSize = false;
                 role.AutoEllipsis = true;
-                role.Left = user?.Left ?? userLeft;
-                role.Width = user?.Width ?? userWidth;
+                role.Anchor = AnchorStyles.None;
+                role.Left = stackLeft;
+                role.Width = stackRight - stackLeft;
                 role.TextAlign = ContentAlignment.MiddleRight;
+                role.Height = 16;
+                role.Top = (user?.Bottom ?? HeaderHeight / 2) + 2;
                 role.Visible = !compact;
             }
             if (icon != null)
             {
-                icon.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-                icon.Left = Math.Max(titleLeft + 150, (user?.Left ?? userLeft) - iconWidth - 10);
-                icon.Top = Math.Max(10, (HeaderHeight - icon.Height) / 2);
+                icon.Anchor = AnchorStyles.None;
+                icon.Left = Math.Max((title?.Left ?? 24) + 150, stackLeft - icon.Width - 10);
+                icon.Top = Math.Max(6, (HeaderHeight - icon.Height) / 2);
             }
             if (title != null)
             {
                 title.AutoSize = false;
                 title.AutoEllipsis = true;
-                title.Left = titleLeft;
+                title.Anchor = AnchorStyles.None;
+                title.Left = title.Left > 0 ? title.Left : 24;
                 title.Top = 0;
                 title.Height = HeaderHeight;
-                title.Width = Math.Max(160, (icon?.Left ?? hw - 180) - title.Left - 18);
+                title.Width = Math.Max(140, (icon?.Left ?? stackLeft) - title.Left - 16);
                 title.TextAlign = ContentAlignment.MiddleLeft;
             }
         }
@@ -309,16 +320,24 @@ public static class ResponsiveLayout
         if (appTitle != null)
         {
             appTitle.AutoSize = false;
-            appTitle.TextAlign = ContentAlignment.MiddleCenter;
+            appTitle.TextAlign = ContentAlignment.MiddleLeft;
             appTitle.Left = 20;
             appTitle.Width = Math.Max(190, left.ClientSize.Width - 40);
             appTitle.Top = (logo?.Bottom ?? 190) + 18;
+            // Đo chiều cao thật theo font/chữ để tiêu đề không bị cắt cạnh dưới.
+            appTitle.Height = Math.Max(40, TextRenderer.MeasureText(
+                appTitle.Text, appTitle.Font,
+                new Size(appTitle.Width, int.MaxValue), TextFormatFlags.WordBreak).Height + 4);
         }
         if (desc != null)
         {
+            desc.AutoSize = false;
             desc.Left = 24;
             desc.Width = Math.Max(180, left.ClientSize.Width - 48);
             desc.Top = (appTitle?.Bottom ?? 270) + 8;
+            desc.Height = Math.Max(40, TextRenderer.MeasureText(
+                desc.Text, desc.Font,
+                new Size(desc.Width, int.MaxValue), TextFormatFlags.WordBreak).Height + 4);
         }
 
         // Các ô nhập luôn vừa theo khung, không vượt ra ngoài khi DPI tăng.
@@ -496,6 +515,12 @@ public static class ResponsiveLayout
             chart.Height = Math.Max(360, chart.Height);
             bottom.Height = Math.Max(300, bottom.Height);
         }
+
+        // Ba khối trên đã được căn đúng bề rộng w, nên TẮT cuộn ngang của vùng
+        // chứa. Nếu để cuộn ngang, các panel Dock=Top (pnlDau chứa nút "Làm mới")
+        // sẽ bị kéo giãn theo bề rộng cuộn => nút bấm văng ra ngoài màn hình.
+        content.HorizontalScroll.Enabled = false;
+        content.AutoScrollMinSize = new Size(0, content.AutoScrollMinSize.Height);
     }
 
     private static void CustomerHomeResize(object? sender, EventArgs e)

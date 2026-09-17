@@ -28,6 +28,7 @@ public partial class frmDashboardAdmin : BaseForm
             ("SDT", "Số điện thoại"),
             ("TienSan", "Tiền sân"),
             ("TrangThai", "Trạng thái"));
+        Luoi.AnCot(dgvHomNay, "MaKH", "MaSan", "MaNguoiTao", "NgayTao", "NgayDat");
         Luoi.DatDoRong(dgvHomNay, "MaDat", 60);
         Luoi.DatDoRong(dgvHomNay, "GioBatDau", 90);
         Luoi.DatDoRong(dgvHomNay, "GioKetThuc", 90);
