@@ -1,5 +1,6 @@
 using SportFieldBooking.Core.Common;
 using SportFieldBooking.Data.Helpers;
+using SportFieldBooking.Data.Repositories;
 using SportFieldBooking.WinForms.Forms;
 using SportFieldBooking.WinForms.Helpers;
 
@@ -23,7 +24,8 @@ internal static class Program
         // Chủ đề giao diện: dùng lại lựa chọn người dùng đã nhớ (mặc định Tối).
         GiaoDien.ChuyenTheme(toi: CaiDatNguoiDung.LaThemeToi);
 
-        KiemTraKetNoiBanDau();
+        if (KiemTraKetNoiBanDau())
+            NangCapLuocDoBanDau();
 
         // Vòng lặp phiên làm việc: đăng nhập -> mở màn hình chính -> đăng xuất -> đăng nhập lại.
         while (true)
@@ -59,15 +61,47 @@ internal static class Program
         }
     }
 
-    private static void KiemTraKetNoiBanDau()
+    /// <summary>Kiểm tra kết nối CSDL lúc khởi động. Trả về true nếu kết nối được.</summary>
+    private static bool KiemTraKetNoiBanDau()
     {
-        if (DbHelper.KiemTraKetNoi(out string loi)) return;
+        if (DbHelper.KiemTraKetNoi(out string loi)) return true;
 
         string thongDiep =
             "Không thể kết nối tới cơ sở dữ liệu QLSanTheThao.\n\n" +
-            "• Hãy chạy script database/01_TaoCSDL.sql trước.\n" +
+            "• Cài mới: chạy database/01_TaoCSDL_v2.sql rồi database/02_DuLieuMau_v2.sql.\n" +
+            "• Đã có CSDL cũ: chạy database/04_NangCapCSDL_v2.sql (ứng dụng cũng tự nâng cấp phần còn thiếu).\n" +
             "• Kiểm tra chuỗi kết nối trong file appsettings.json.\n\n" +
             "Chi tiết: " + loi;
         frmThongBao.HienThi(thongDiep, "Lỗi kết nối cơ sở dữ liệu", frmThongBao.LoaiThongBao.Loi);
+        return false;
+    }
+
+    /// <summary>
+    /// Tự bổ sung phần lược đồ CSDL mà phiên bản ứng dụng này cần (ví dụ cột DAT_SAN.MaVoucher).
+    /// Người dùng chỉ cần git pull rồi chạy - không phải nhớ chạy thêm script SQL.
+    /// Thao tác này idempotent và chỉ THÊM, không xoá/sửa dữ liệu cũ.
+    /// </summary>
+    private static void NangCapLuocDoBanDau()
+    {
+        NangCapCSDL.KetQua ketQua = NangCapCSDL.KiemTraVaCapNhat();
+
+        if (ketQua.DaThayDoi)
+        {
+            // Vừa thay đổi lược đồ -> bỏ kết quả kiểm tra cột đã nhớ trong repository.
+            DatSanRepository.DatLaiKiemTraCot();
+            return;
+        }
+
+        if (!ketQua.ThanhCong)
+        {
+            // Không tự nâng cấp được (thường do tài khoản SQL thiếu quyền ALTER).
+            // Ứng dụng vẫn chạy: DatSanRepository tự bỏ cột mới khỏi câu truy vấn.
+            frmThongBao.HienThi(
+                "Ứng dụng không tự nâng cấp được cơ sở dữ liệu (có thể do tài khoản SQL thiếu quyền ALTER).\n\n" +
+                "Chương trình vẫn chạy bình thường, nhưng voucher gắn với lượt đặt sân sẽ không được lưu.\n" +
+                "Để bật lại: nhờ quản trị chạy script database/05_BoSungVoucherDatSan_v3.sql.\n\n" +
+                "Chi tiết: " + ketQua.Loi,
+                "Cần nâng cấp cơ sở dữ liệu", frmThongBao.LoaiThongBao.CanhBao);
+        }
     }
 }

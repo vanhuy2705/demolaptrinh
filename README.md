@@ -16,10 +16,14 @@ SportFieldBooking/
 ├── .editorconfig                -- quy ước định dạng mã nguồn
 ├── ChayUngDung.bat              -- build + chạy nhanh bằng CLI (không cần mở VS)
 ├── database/
-│   ├── 01_TaoCSDL.sql          -- tạo DB QLSanTheThao (11 bảng, ràng buộc, index)
-│   ├── 02_DuLieuMau.sql        -- tài khoản, sân, khách, voucher, tham số demo
+│   ├── 01_TaoCSDL_v2.sql       -- DÙNG FILE NÀY: tạo DB QLSanTheThao bản v3 (15 bảng, 5 fn, 8 view, 7 SP, 56 quyền)
+│   ├── 02_DuLieuMau_v2.sql     -- DÙNG FILE NÀY: tài khoản, sân, khách, voucher, tham số demo
+│   ├── 01_TaoCSDL.sql          -- bản cũ (giữ lại tham khảo)
+│   ├── 02_DuLieuMau.sql        -- bản cũ (giữ lại tham khảo)
 │   ├── 03_ResetDuLieu.sql      -- xóa dữ liệu nghiệp vụ để demo lại từ đầu
-│   └── ChayCSDL.bat            -- chạy nhanh 2 script trên bằng sqlcmd
+│   ├── 04_NangCapCSDL_v2.sql   -- nâng DB cũ lên v2, GIỮ dữ liệu (idempotent)
+│   ├── 05_BoSungVoucherDatSan_v3.sql -- thêm DAT_SAN.MaVoucher, GIỮ dữ liệu (idempotent)
+│   └── ChayCSDL.bat            -- chạy nhanh bằng sqlcmd (có chế độ "nangcap" giữ dữ liệu)
 ├── docs/
 │   ├── HuongDanVisualStudio.md -- mở/chạy/sửa lỗi trong Visual Studio
 │   └── KichBanDemo.md          -- kịch bản demo chi tiết từng bước
@@ -49,9 +53,15 @@ SportFieldBooking/
 1. **Tạo CSDL** — chạy `database\ChayCSDL.bat` (dùng `sqlcmd`, mặc định server `localhost`),
    hoặc mở SQL Server Management Studio chạy lần lượt:
    ```
-   database\01_TaoCSDL.sql
-   database\02_DuLieuMau.sql
+   database\01_TaoCSDL_v2.sql      -- sẽ DROP DB cũ nếu có
+   database\02_DuLieuMau_v2.sql
    ```
+   **Đã có CSDL và muốn GIỮ dữ liệu?** chạy `database\ChayCSDL.bat .\SQLEXPRESS nangcap`
+   (= script `04_NangCapCSDL_v2.sql` rồi `05_BoSungVoucherDatSan_v3.sql`).
+
+   > Ứng dụng cũng **tự bổ sung phần lược đồ còn thiếu lúc khởi động**
+   > (xem `SportFieldBooking.Data/Helpers/NangCapCSDL.cs`), nên lỡ quên chạy script
+   > thì app vẫn chạy được — chỉ tính năng gắn với phần thiếu đó bị vô hiệu.
 2. **Sửa chuỗi kết nối** trong `src/SportFieldBooking.WinForms/appsettings.json`:
    ```json
    "DefaultConnection": "Data Source=.\\SQLEXPRESS;Initial Catalog=QLSanTheThao;Integrated Security=True;TrustServerCertificate=True;MultipleActiveResultSets=True"
@@ -83,7 +93,7 @@ mở `Directory.Build.props` và đổi một dòng duy nhất, rồi *Build ▸
 <PhienBanNet>6.0</PhienBanNet>    <!-- VS 2019 -->
 ```
 
-### Tài khoản demo (tạo bởi `02_DuLieuMau.sql`)
+### Tài khoản demo (tạo bởi `02_DuLieuMau_v2.sql`)
 
 | Tên đăng nhập | Mật khẩu | Vai trò | Mở |
 |---|---|---|---|

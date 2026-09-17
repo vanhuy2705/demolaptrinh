@@ -3,6 +3,7 @@ using SportFieldBooking.Business.Services;
 using SportFieldBooking.Core.Common;
 using SportFieldBooking.Core.Entities;
 using SportFieldBooking.Data.Helpers;
+using SportFieldBooking.Data.Repositories;
 
 namespace SportFieldBooking.KiemThu;
 
@@ -198,6 +199,37 @@ internal static class Program
         Kiem("...và tính theo giá hiện hành 400.000 đ, không giảm",
             hdHetLuot.ThanhCong && hdHetLuot.DuLieu.TongTien == 400000m
             && hdHetLuot.DuLieu.LoaiGiamGia == LoaiGiamGia.Khong);
+
+        // --- J. SQL tự thích ứng khi CSDL chưa được nâng cấp ---
+        Nhom("J. SQL thích ứng lược đồ (CSDL cũ chưa có cột MaVoucher vẫn chạy)");
+        const string khung = @"
+        SELECT ds.MaDat, ds.MaNguoiTao{COT_VOUCHER},
+               ISNULL(s.DonGia, 0) AS DonGia{COT_MA_CODE}
+        FROM DAT_SAN ds
+        LEFT JOIN SAN s ON s.MaSan = ds.MaSan{JOIN_VOUCHER}";
+
+        string sqlMoi = DatSanRepository.LapSql(khung, coVoucher: true);
+        string sqlCu = DatSanRepository.LapSql(khung, coVoucher: false);
+
+        Kiem("CSDL v3: SELECT có ds.MaVoucher + JOIN VOUCHER + MaVoucherCode",
+            sqlMoi.Contains("ds.MaVoucher") && sqlMoi.Contains("LEFT JOIN VOUCHER v")
+            && sqlMoi.Contains("AS MaVoucherCode"));
+
+        Kiem("CSDL cũ: SELECT hoàn toàn không nhắc tới MaVoucher/VOUCHER",
+            !sqlCu.Contains("MaVoucher") && !sqlCu.Contains("VOUCHER"));
+
+        Kiem("Cả 2 trạng thái: không còn chỗ giữ {…} chưa được thay",
+            !sqlMoi.Contains("{") && !sqlMoi.Contains("}") && !sqlCu.Contains("{") && !sqlCu.Contains("}"));
+
+        Kiem("CSDL cũ: danh sách cột vẫn hợp lệ (không thừa dấu phẩy trước FROM)",
+            sqlCu.Contains("AS DonGia\n        FROM DAT_SAN ds") && !sqlCu.Contains(",\n        FROM"));
+
+        Kiem("CSDL v3: danh sách cột vẫn hợp lệ (không thừa dấu phẩy trước FROM)",
+            sqlMoi.Contains("AS MaVoucherCode\n        FROM DAT_SAN ds") && !sqlMoi.Contains(",\n        FROM"));
+
+        Kiem("Khoá chống trùng WITH (UPDLOCK, HOLDLOCK) vẫn gắn được ở cả 2 trạng thái",
+            sqlMoi.Replace("FROM DAT_SAN ds", "FROM DAT_SAN ds WITH (UPDLOCK, HOLDLOCK)").Contains("UPDLOCK")
+            && sqlCu.Replace("FROM DAT_SAN ds", "FROM DAT_SAN ds WITH (UPDLOCK, HOLDLOCK)").Contains("UPDLOCK"));
 
         // --- Tổng kết ---
         Console.WriteLine();
