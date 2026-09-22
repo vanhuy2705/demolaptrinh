@@ -24,6 +24,7 @@ partial class frmXacNhanThanhToan
         lblTienThua = new Label();
         txtSoTienKhachDua = new TextBox();
         lblNhanTienKhachDua = new Label();
+        radThe = new RadioButton();
         radChuyenKhoan = new RadioButton();
         radTienMat = new RadioButton();
         lblNhanPhuongThuc = new Label();
@@ -82,6 +83,7 @@ partial class frmXacNhanThanhToan
         pnlThan.Controls.Add(lblTienThua);
         pnlThan.Controls.Add(txtSoTienKhachDua);
         pnlThan.Controls.Add(lblNhanTienKhachDua);
+        pnlThan.Controls.Add(radThe);
         pnlThan.Controls.Add(radChuyenKhoan);
         pnlThan.Controls.Add(radTienMat);
         pnlThan.Controls.Add(lblNhanPhuongThuc);
@@ -254,6 +256,18 @@ partial class frmXacNhanThanhToan
         radChuyenKhoan.TabIndex = 1;
         radChuyenKhoan.Text = "Chuyển khoản";
         radChuyenKhoan.UseVisualStyleBackColor = true;
+        radChuyenKhoan.CheckedChanged += radTienMat_CheckedChanged;
+
+        // radThe
+        radThe.AutoSize = true;
+        radThe.Font = GiaoDien.ChuThuong;
+        radThe.Location = new System.Drawing.Point(410, 246);
+        radThe.Name = "radThe";
+        radThe.Size = new System.Drawing.Size(60, 21);
+        radThe.TabIndex = 2;
+        radThe.Text = "Thẻ";
+        radThe.UseVisualStyleBackColor = true;
+        radThe.CheckedChanged += radTienMat_CheckedChanged;
 
         // lblNhanTienKhachDua
         lblNhanTienKhachDua.AutoSize = true;
@@ -353,6 +367,7 @@ partial class frmXacNhanThanhToan
     private Label lblNhanTienKhachDua;
     private RadioButton radChuyenKhoan;
     private RadioButton radTienMat;
+    private RadioButton radThe;
     private Label lblNhanPhuongThuc;
     private Label lblTongTien;
     private Label lblNhanTongTien;

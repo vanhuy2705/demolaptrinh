@@ -6,9 +6,6 @@ namespace SportFieldBooking.WinForms.Helpers;
 /// <summary>Định dạng DataGridView thống nhất, ưu tiên đọc được dữ liệu trên mọi kích thước.</summary>
 public static class Luoi
 {
-    // Luu lai cac thiet lap (tieu de cot, do rong, dinh dang...) theo tung luoi.
-    // Vi cac form goi chung TRUOC khi bind du lieu (luc chua co cot), nen ta ghi nho
-    // va AP LAI trong DataBindingComplete - khi cot tu sinh da ton tai.
     private static readonly Dictionary<DataGridView, List<Action>> _cauHinh = new();
 
     private static void Nho(DataGridView luoi, Action thucHien)
@@ -23,7 +20,6 @@ public static class Luoi
         thucHien();
     }
 
-    /// <summary>Ap lai toan bo thiet lap da nho (goi sau khi bind du lieu).</summary>
     public static void ApDungLai(DataGridView luoi)
     {
         if (luoi == null || !_cauHinh.TryGetValue(luoi, out var ds)) return;
@@ -78,7 +74,7 @@ public static class Luoi
     private static void Luoi_DataBindingComplete(object? sender, DataGridViewBindingCompleteEventArgs e)
     {
         if (sender is not DataGridView luoi) return;
-        ApDungLai(luoi);     // tieu de / do rong / dinh dang phai chay SAU khi cot tu sinh
+        ApDungLai(luoi);
         CanBangCot(luoi);
     }
 
@@ -113,8 +109,6 @@ public static class Luoi
             return;
         }
 
-        // Nhiều cột: không dùng Fill. Tổng chiều rộng lớn hơn màn hình là có chủ ý,
-        // người dùng cuộn ngang để xem đủ dữ liệu thay vì chữ bị ép/chồng.
         luoi.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
         foreach (DataGridViewColumn c in luoi.Columns)
         {
@@ -126,8 +120,12 @@ public static class Luoi
                 int sample = Math.Min(8, luoi.Rows.Count);
                 for (int i = 0; i < sample; i++)
                 {
-                    object value = luoi.Rows[i].Cells[c.Index].Value;
-                    cellWidth = Math.Max(cellWidth, TextRenderer.MeasureText(value?.ToString() ?? string.Empty, GiaoDien.ChuThuong).Width + 28);
+                    try
+                    {
+                        object value = luoi.Rows[i].Cells[c.Index].Value;
+                        cellWidth = Math.Max(cellWidth, TextRenderer.MeasureText(value?.ToString() ?? string.Empty, GiaoDien.ChuThuong).Width + 28);
+                    }
+                    catch { /* ignore */ }
                 }
             }
             c.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
@@ -219,32 +217,59 @@ public static class Luoi
 
     public static int LayMaDangChon(DataGridView luoi, string tenCot = "MaDat", int macDinh = 0)
     {
-        if (luoi.CurrentRow?.DataBoundItem == null || !luoi.Columns.Contains(tenCot)) return macDinh;
-        object giaTri = luoi.CurrentRow.Cells[tenCot].Value;
-        return giaTri == null || giaTri == DBNull.Value ? macDinh : Convert.ToInt32(giaTri);
+        try
+        {
+            if (luoi == null || luoi.CurrentRow == null) return macDinh;
+            if (luoi.CurrentRow.DataBoundItem == null) return macDinh;
+            if (!luoi.Columns.Contains(tenCot)) return macDinh;
+            var cell = luoi.CurrentRow.Cells[tenCot];
+            if (cell == null) return macDinh;
+            object giaTri = cell.Value;
+            if (giaTri == null || giaTri == DBNull.Value) return macDinh;
+            return Convert.ToInt32(giaTri);
+        }
+        catch
+        {
+            return macDinh;
+        }
     }
 
-    public static T? LayDongDangChon<T>(DataGridView luoi) where T : class => luoi.CurrentRow?.DataBoundItem as T;
+    public static T? LayDongDangChon<T>(DataGridView luoi) where T : class
+    {
+        try
+        {
+            return luoi?.CurrentRow?.DataBoundItem as T;
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
     public static void GanDuLieu<T>(DataGridView luoi, IList<T> danhSach)
     {
-        int chiSo = luoi.CurrentRow?.Index ?? 0;
-        luoi.DataSource = null;
-        luoi.DataSource = danhSach;
-        if (luoi.Rows.Count == 0 || luoi.Columns.Count == 0) return;
-
-        // Đặt ô hiện tại vào cột HIỂN THỊ đầu tiên: gán CurrentCell vào ô thuộc cột
-        // bị ẩn sẽ ném InvalidOperationException ("cannot be set to an invisible cell").
-        DataGridViewColumn cotHienThi = luoi.Columns.Cast<DataGridViewColumn>()
-            .OrderBy(c => c.DisplayIndex).FirstOrDefault(c => c.Visible);
-        if (cotHienThi == null) return;
+        if (luoi == null) return;
         try
         {
-            luoi.CurrentCell = luoi.Rows[Math.Min(chiSo, luoi.Rows.Count - 1)].Cells[cotHienThi.Index];
+            int chiSo = luoi.CurrentRow?.Index ?? 0;
+            luoi.DataSource = null;
+            luoi.DataSource = danhSach ?? new List<T>();
+            if (luoi.Rows.Count == 0 || luoi.Columns.Count == 0) return;
+
+            DataGridViewColumn cotHienThi = luoi.Columns.Cast<DataGridViewColumn>()
+                .OrderBy(c => c.DisplayIndex).FirstOrDefault(c => c.Visible);
+            if (cotHienThi == null) return;
+            try
+            {
+                luoi.CurrentCell = luoi.Rows[Math.Min(chiSo, luoi.Rows.Count - 1)].Cells[cotHienThi.Index];
+            }
+            catch (InvalidOperationException) { }
+            catch (ArgumentException) { }
         }
-        catch (InvalidOperationException)
+        catch
         {
-            // Lưới đang bị vô hiệu hóa hoặc chưa sẵn sàng: bỏ qua, không chặn hiển thị.
+            // Không để lỗi lưới chặn toàn bộ form
+            try { luoi.DataSource = danhSach ?? new List<T>(); } catch { }
         }
     }
 

@@ -5,7 +5,7 @@ using SportFieldBooking.WinForms.Helpers;
 namespace SportFieldBooking.WinForms.Forms;
 
 /// <summary>
-/// Hộp thoại xác nhận thanh toán: chọn tiền mặt/chuyển khoản, nhập tiền khách đưa, tính tiền thừa.
+/// Hộp thoại xác nhận thanh toán: chọn tiền mặt/chuyển khoản/thẻ, nhập tiền khách đưa, tính tiền thừa.
 /// Chỉ thu thập thông tin thanh toán - việc cập nhật CSDL do HoaDonService.ThanhToan đảm nhiệm.
 /// </summary>
 public partial class frmXacNhanThanhToan : Form
@@ -19,7 +19,15 @@ public partial class frmXacNhanThanhToan : Form
     }
 
     /// <summary>Phương thức thanh toán được chọn.</summary>
-    public string PhuongThuc => radChuyenKhoan.Checked ? PhuongThucThanhToan.ChuyenKhoan : PhuongThucThanhToan.TienMat;
+    public string PhuongThuc
+    {
+        get
+        {
+            if (radChuyenKhoan.Checked) return PhuongThucThanhToan.ChuyenKhoan;
+            if (radThe.Checked) return PhuongThucThanhToan.The;
+            return PhuongThucThanhToan.TienMat;
+        }
+    }
 
     /// <summary>Số tiền khách đưa (chỉ có ý nghĩa với tiền mặt).</summary>
     public decimal SoTienKhachDua { get; private set; }
@@ -86,6 +94,7 @@ public partial class frmXacNhanThanhToan : Form
         txtSoTienKhachDua.Enabled = laTienMat;
         lblTienThua.Visible = laTienMat;
         lblNhanTienThua.Visible = laTienMat;
+        lblNhanTienKhachDua.Visible = laTienMat;
         TinhTienThua();
     }
 }

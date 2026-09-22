@@ -99,23 +99,28 @@ partial class frmVoucherCuaToi
         pnlVoucher.Size = new System.Drawing.Size(828, 262);
         pnlVoucher.TabIndex = 0;
 
-        lblTieuDeVoucher.AutoSize = true;
+        lblTieuDeVoucher.AutoSize = false;
+        lblTieuDeVoucher.Dock = DockStyle.Top;
         lblTieuDeVoucher.Font = GiaoDien.ChuLon;
         lblTieuDeVoucher.ForeColor = GiaoDien.Chu;
         lblTieuDeVoucher.Location = new System.Drawing.Point(14, 12);
         lblTieuDeVoucher.Name = "lblTieuDeVoucher";
-        lblTieuDeVoucher.Size = new System.Drawing.Size(240, 25);
+        lblTieuDeVoucher.Size = new System.Drawing.Size(800, 30);
         lblTieuDeVoucher.TabIndex = 0;
         lblTieuDeVoucher.Text = "Voucher có thể sử dụng";
+        lblTieuDeVoucher.TextAlign = ContentAlignment.MiddleLeft;
 
-        pnlBoLoc.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        pnlBoLoc.BackColor = GiaoDien.BeMat;
         pnlBoLoc.Controls.Add(btnLamMoi);
         pnlBoLoc.Controls.Add(btnTim);
         pnlBoLoc.Controls.Add(txtTimKiem);
-        pnlBoLoc.Location = new System.Drawing.Point(300, 8);
+        pnlBoLoc.Dock = DockStyle.Top;
+        pnlBoLoc.Location = new System.Drawing.Point(14, 42);
         pnlBoLoc.Name = "pnlBoLoc";
-        pnlBoLoc.Size = new System.Drawing.Size(510, 36);
+        pnlBoLoc.Padding = new Padding(0, 4, 0, 6);
+        pnlBoLoc.Size = new System.Drawing.Size(800, 40);
         pnlBoLoc.TabIndex = 1;
+        pnlBoLoc.AutoScroll = true;
 
         txtTimKiem.BackColor = GiaoDien.ManHinhNen;
         txtTimKiem.BorderStyle = BorderStyle.FixedSingle;
