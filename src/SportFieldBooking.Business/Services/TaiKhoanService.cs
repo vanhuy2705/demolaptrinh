@@ -47,10 +47,12 @@ public class TaiKhoanService
             taiKhoan.TenDangNhap = taiKhoan.TenDangNhap.Trim();
             taiKhoan.MatKhau = PasswordHasher.MaHoa(matKhau);
             taiKhoan.MaTK = _taiKhoanRepo.Them(taiKhoan);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "ThemTaiKhoan", "TAIKHOAN", taiKhoan.MaTK.ToString(), $"Thêm TK {taiKhoan.TenDangNhap} ({taiKhoan.VaiTro})"); } catch { }
             return KetQua<TaiKhoan>.Tot(taiKhoan, "Thêm tài khoản thành công.");
         }
         catch (Exception ex)
         {
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "ThemTaiKhoan", "TAIKHOAN", null, $"Lỗi thêm TK: {ex.Message}", KetQuaNhatKy.ThatBai); } catch { }
             return KetQua<TaiKhoan>.Loi("Không thể thêm tài khoản: " + ex.Message);
         }
     }
@@ -66,17 +68,17 @@ public class TaiKhoanService
             if (_taiKhoanRepo.TonTaiTenDangNhap(taiKhoan.TenDangNhap.Trim(), taiKhoan.MaTK))
                 return KetQua.Loi("Tên đăng nhập đã được dùng bởi tài khoản khác.");
 
-            // Không cho tự hạ quyền chính mình hoặc tự đổi vai trò để nâng quyền trái phép.
             if (taiKhoan.MaTK == PhienLamViec.MaTK && taiKhoan.VaiTro != PhienLamViec.VaiTro)
                 return KetQua.Loi("Bạn không được thay đổi vai trò của chính mình.");
 
-            // Không được băm lại mật khẩu: để trống nghĩa là giữ nguyên mật khẩu cũ.
             taiKhoan.MatKhau = "";
             _taiKhoanRepo.CapNhat(taiKhoan);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "SuaTaiKhoan", "TAIKHOAN", taiKhoan.MaTK.ToString(), $"Sửa TK #{taiKhoan.MaTK}"); } catch { }
             return KetQua.Tot("Cập nhật tài khoản thành công.");
         }
         catch (Exception ex)
         {
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "SuaTaiKhoan", "TAIKHOAN", taiKhoan?.MaTK.ToString(), $"Lỗi sửa TK: {ex.Message}", KetQuaNhatKy.ThatBai); } catch { }
             return KetQua.Loi("Không thể cập nhật tài khoản: " + ex.Message);
         }
     }
@@ -93,10 +95,12 @@ public class TaiKhoanService
                 return KetQua.Loi("Trạng thái không hợp lệ.");
 
             _taiKhoanRepo.DoiTrangThai(maTK, trangThai);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "KhoaMoTaiKhoan", "TAIKHOAN", maTK.ToString(), $"Đổi trạng thái TK #{maTK} -> {trangThai}"); } catch { }
             return KetQua.Tot(trangThai == TrangThaiTaiKhoan.BiKhoa ? "Đã khóa tài khoản." : "Đã mở khóa tài khoản.");
         }
         catch (Exception ex)
         {
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "KhoaMoTaiKhoan", "TAIKHOAN", maTK.ToString(), $"Lỗi khóa/mở: {ex.Message}", KetQuaNhatKy.ThatBai); } catch { }
             return KetQua.Loi("Không thể đổi trạng thái tài khoản: " + ex.Message);
         }
     }
@@ -111,10 +115,12 @@ public class TaiKhoanService
                 return KetQua.Loi("Mật khẩu mới phải có ít nhất 6 ký tự.");
 
             _taiKhoanRepo.DoiMatKhau(maTK, PasswordHasher.MaHoa(matKhauMoi));
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "DatLaiMatKhau", "TAIKHOAN", maTK.ToString(), $"Đặt lại MK TK #{maTK}"); } catch { }
             return KetQua.Tot("Đặt lại mật khẩu thành công.");
         }
         catch (Exception ex)
         {
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "DatLaiMatKhau", "TAIKHOAN", maTK.ToString(), $"Lỗi đặt lại MK: {ex.Message}", KetQuaNhatKy.ThatBai); } catch { }
             return KetQua.Loi("Không thể đặt lại mật khẩu: " + ex.Message);
         }
     }
@@ -136,10 +142,12 @@ public class TaiKhoanService
                 return KetQua.Loi("Tài khoản này đang gắn với hồ sơ nhân viên, hãy xóa hồ sơ nhân viên trước.");
 
             _taiKhoanRepo.Xoa(maTK);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "XoaTaiKhoan", "TAIKHOAN", maTK.ToString(), $"Xóa TK #{maTK}"); } catch { }
             return KetQua.Tot("Xóa tài khoản thành công.");
         }
         catch (Exception ex)
         {
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "XoaTaiKhoan", "TAIKHOAN", maTK.ToString(), $"Lỗi xóa TK: {ex.Message}", KetQuaNhatKy.ThatBai); } catch { }
             return KetQua.Loi("Không thể xóa tài khoản: " + ex.Message);
         }
     }

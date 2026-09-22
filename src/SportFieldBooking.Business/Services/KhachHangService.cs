@@ -43,6 +43,7 @@ public class KhachHangService
             khachHang.HoTen = khachHang.HoTen.Trim();
             khachHang.SDT = khachHang.SDT.Trim();
             khachHang.MaKH = _khachHangRepo.Them(khachHang);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "ThemKhachHang", "KHACH_HANG", khachHang.MaKH.ToString(), $"Thêm KH {khachHang.HoTen}"); } catch { }
             return KetQua<KhachHang>.Tot(khachHang, "Thêm khách hàng thành công.");
         }
         catch (Exception ex)
@@ -84,6 +85,7 @@ public class KhachHangService
                 return KetQua.Loi("Bạn không có quyền xóa khách hàng.");
 
             _khachHangRepo.Xoa(maKH);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "XoaKhachHang", "KHACH_HANG", maKH.ToString(), $"Xóa KH #{maKH}"); } catch { }
             return KetQua.Tot("Xóa khách hàng thành công.");
         }
         catch (Exception ex)

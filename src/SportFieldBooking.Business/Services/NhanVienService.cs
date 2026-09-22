@@ -93,6 +93,7 @@ public class NhanVienService
                 return KetQua.Loi("Số điện thoại đã được dùng cho nhân viên khác.");
 
             _nhanVienRepo.CapNhat(nhanVien);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "SuaNhanVien", "NHAN_VIEN", nhanVien.MaNV.ToString(), $"Sửa NV #{nhanVien.MaNV}"); } catch { }
             return KetQua.Tot("Cập nhật nhân viên thành công.");
         }
         catch (Exception ex)

@@ -40,10 +40,12 @@ public class SanService
 
             san.TenSan = san.TenSan.Trim();
             san.MaSan = _sanRepo.Them(san);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "ThemSan", "SAN", san.MaSan.ToString(), $"Thêm sân {san.TenSan}"); } catch { }
             return KetQua<San>.Tot(san, "Thêm sân thành công.");
         }
         catch (Exception ex)
         {
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "ThemSan", "SAN", null, $"Lỗi thêm sân: {ex.Message}", KetQuaNhatKy.ThatBai); } catch { }
             return KetQua<San>.Loi("Không thể thêm sân: " + ex.Message);
         }
     }
@@ -62,15 +64,16 @@ public class SanService
                 return KetQua.Loi("Tên sân đã tồn tại.");
 
             _sanRepo.CapNhat(san);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "SuaSan", "SAN", san.MaSan.ToString(), $"Sửa sân #{san.MaSan}: {san.TenSan}"); } catch { }
             return KetQua.Tot("Cập nhật sân thành công.");
         }
         catch (Exception ex)
         {
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "SuaSan", "SAN", san?.MaSan.ToString(), $"Lỗi sửa sân: {ex.Message}", KetQuaNhatKy.ThatBai); } catch { }
             return KetQua.Loi("Không thể cập nhật sân: " + ex.Message);
         }
     }
 
-    /// <summary>Đổi trạng thái nghiệp vụ: Trống / Đang thuê / Bảo trì.</summary>
     public KetQua DoiTrangThai(int maSan, string trangThai)
     {
         try
@@ -84,10 +87,12 @@ public class SanService
             if (san == null) return KetQua.Loi("Sân không tồn tại.");
 
             _sanRepo.CapNhatTrangThai(maSan, trangThai);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "DoiTrangThaiSan", "SAN", maSan.ToString(), $"Đổi trạng thái sân {san.TenSan} -> {TrangThaiSan.TenHienThi(trangThai)}"); } catch { }
             return KetQua.Tot($"Sân \"{san.TenSan}\" đã chuyển sang trạng thái {TrangThaiSan.TenHienThi(trangThai)}.");
         }
         catch (Exception ex)
         {
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "DoiTrangThaiSan", "SAN", maSan.ToString(), $"Lỗi đổi trạng thái: {ex.Message}", KetQuaNhatKy.ThatBai); } catch { }
             return KetQua.Loi("Không thể đổi trạng thái sân: " + ex.Message);
         }
     }
@@ -104,15 +109,16 @@ public class SanService
                 return KetQua.Loi($"Không thể xóa: sân đã có {soDat} lượt đặt trong lịch sử.");
 
             _sanRepo.Xoa(maSan);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "XoaSan", "SAN", maSan.ToString(), $"Xóa sân #{maSan}"); } catch { }
             return KetQua.Tot("Xóa sân thành công.");
         }
         catch (Exception ex)
         {
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "XoaSan", "SAN", maSan.ToString(), $"Lỗi xóa sân: {ex.Message}", KetQuaNhatKy.ThatBai); } catch { }
             return KetQua.Loi("Không thể xóa sân: " + ex.Message);
         }
     }
 
-    /// <summary>Sân đang được thuê tại thời điểm hiện tại (có booking Đang sử dụng trong khung giờ).</summary>
     public List<San> LaySanDangThueThucTe(DateTime ngay, TimeSpan gioHienTai) =>
         _datSanRepo.LayTheoNgay(ngay)
             .Where(d => d.TrangThai == TrangThaiDatSan.DangSuDung

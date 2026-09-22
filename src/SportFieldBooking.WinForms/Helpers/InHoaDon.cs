@@ -18,33 +18,66 @@ public static class InHoaDon
     public static void XemTruoc(HoaDon hoaDon, ThongTinCuaHang cuaHang = null)
     {
         if (hoaDon == null) return;
-        using var taiLieu = new PrintDocument();
-        cuaHang ??= new ThongTinCuaHang();
-        taiLieu.PrintPage += (_, e) => VeTrang(e.Graphics, e.PageBounds, hoaDon, cuaHang);
-
-        using var xemTruoc = new PrintPreviewDialog
+        try
         {
-            Document = taiLieu,
-            Width = 1000,
-            Height = 800,
-            StartPosition = FormStartPosition.CenterParent
-        };
-        xemTruoc.ShowDialog();
+            using var taiLieu = new PrintDocument();
+            cuaHang ??= new ThongTinCuaHang();
+            taiLieu.PrintPage += (_, e) =>
+            {
+                try { VeTrang(e.Graphics, e.PageBounds, hoaDon, cuaHang); }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine("Lỗi vẽ hóa đơn: " + ex.Message); }
+            };
+
+            using var xemTruoc = new PrintPreviewDialog
+            {
+                Document = taiLieu,
+                Width = 1000,
+                Height = 800,
+                StartPosition = FormStartPosition.CenterParent
+            };
+            xemTruoc.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            System.Windows.Forms.MessageBox.Show("Không thể xem trước hóa đơn: " + ex.Message,
+                "Lỗi in ấn", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
     }
 
     public static void InTrucTiep(HoaDon hoaDon, ThongTinCuaHang cuaHang = null)
     {
         if (hoaDon == null) return;
-        using var taiLieu = new PrintDocument();
-        cuaHang ??= new ThongTinCuaHang();
-        taiLieu.PrintPage += (_, e) => VeTrang(e.Graphics, e.PageBounds, hoaDon, cuaHang);
+        try
+        {
+            using var taiLieu = new PrintDocument();
+            cuaHang ??= new ThongTinCuaHang();
+            taiLieu.PrintPage += (_, e) =>
+            {
+                try { VeTrang(e.Graphics, e.PageBounds, hoaDon, cuaHang); }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine("Lỗi vẽ hóa đơn: " + ex.Message); }
+            };
 
-        using var hopThoai = new PrintDialog { Document = taiLieu };
-        if (hopThoai.ShowDialog() == DialogResult.OK) taiLieu.Print();
+            using var hopThoai = new PrintDialog { Document = taiLieu };
+            if (hopThoai.ShowDialog() == DialogResult.OK)
+            {
+                try { taiLieu.Print(); }
+                catch (Exception ex)
+                {
+                    System.Windows.Forms.MessageBox.Show("Không thể in hóa đơn: " + ex.Message + "\nVui lòng kiểm tra máy in.",
+                        "Lỗi in ấn", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Windows.Forms.MessageBox.Show("Không thể in hóa đơn: " + ex.Message,
+                "Lỗi in ấn", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
     }
 
     private static void VeTrang(Graphics g, Rectangle vung, HoaDon hoaDon, ThongTinCuaHang cuaHang)
     {
+        if (g == null || hoaDon == null || cuaHang == null) return;
         float leTrai = 60, leTren = 60;
         float y = leTren;
         using var butDam = new Font("Segoe UI", 16F, FontStyle.Bold);
@@ -55,8 +88,7 @@ public static class InHoaDon
         using var coXam = new SolidBrush(Color.Gray);
         using var butKe = new Pen(Color.FromArgb(200, 200, 200));
 
-        // Tiêu đề cửa hàng
-        g.DrawString(cuaHang.TenTrungTam, butDam, co, leTrai, y);
+        g.DrawString(cuaHang.TenTrungTam ?? "TRUNG TÂM THỂ THAO", butDam, co, leTrai, y);
         y += 32;
         if (!string.IsNullOrWhiteSpace(cuaHang.DiaChi))
         {
@@ -78,12 +110,11 @@ public static class InHoaDon
         g.DrawString($"Ngày lập: {hoaDon.NgayLap:dd/MM/yyyy HH:mm}", butNho, coXam, leTrai, y);
         y += 24;
 
-        // Thông tin khách & booking
-        g.DrawString("Khách hàng: " + hoaDon.TenKH, butThuong, co, leTrai, y);
+        g.DrawString("Khách hàng: " + (hoaDon.TenKH ?? ""), butThuong, co, leTrai, y);
         y += 22;
-        g.DrawString("Số điện thoại: " + hoaDon.SDT, butThuong, co, leTrai, y);
+        g.DrawString("Số điện thoại: " + (hoaDon.SDT ?? ""), butThuong, co, leTrai, y);
         y += 22;
-        g.DrawString("Sân: " + hoaDon.TenSan, butThuong, co, leTrai, y);
+        g.DrawString("Sân: " + (hoaDon.TenSan ?? ""), butThuong, co, leTrai, y);
         y += 22;
         g.DrawString($"Ngày đặt: {hoaDon.NgayDat:dd/MM/yyyy}", butThuong, co, leTrai, y);
         y += 22;
@@ -93,7 +124,6 @@ public static class InHoaDon
         g.DrawLine(butKe, leTrai, y, vung.Width - leTrai, y);
         y += 16;
 
-        // Bảng tiền
         VeDong(g, "Tiền sân (giá gốc)", TroGiup.Tien(hoaDon.TienGoc), leTrai, ref y, vung.Width, butThuong, co);
         VeDong(g, "Giảm giá (" + LoaiGiamGia.TenHienThi(hoaDon.LoaiGiamGia) + ")",
             hoaDon.TienGiam > 0 ? "-" + TroGiup.Tien(hoaDon.TienGiam) : TroGiup.Tien(0),
@@ -126,9 +156,14 @@ public static class InHoaDon
     private static void VeDong(Graphics g, string trai, string phai, float leTrai, ref float y, int doRongTrang,
         Font font, Brush co)
     {
-        g.DrawString(trai, font, co, leTrai, y);
-        SizeF kichThuoc = g.MeasureString(phai, font);
-        g.DrawString(phai, font, co, doRongTrang - leTrai - kichThuoc.Width, y);
-        y += font.Size + 12;
+        if (g == null) return;
+        try
+        {
+            g.DrawString(trai ?? "", font, co, leTrai, y);
+            SizeF kichThuoc = g.MeasureString(phai ?? "", font);
+            g.DrawString(phai ?? "", font, co, doRongTrang - leTrai - kichThuoc.Width, y);
+            y += font.Size + 12;
+        }
+        catch { y += font.Size + 12; }
     }
 }

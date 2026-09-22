@@ -24,7 +24,8 @@ public static class ResponsiveLayout
     private static readonly HashSet<string> ManagementForms = new(StringComparer.Ordinal)
     {
         "frmQuanLyKhachHang", "frmQuanLyNhanVien", "frmQuanLyTaiKhoan",
-        "frmSan", "frmLoaiSan", "frmVoucher", "frmKhuyenMai", "frmNhatKyHoatDong"
+        "frmSan", "frmLoaiSan", "frmVoucher", "frmKhuyenMai", "frmNhatKyHoatDong",
+        "frmPhanQuyen"
     };
 
     private static readonly HashSet<string> BookingForms = new(StringComparer.Ordinal)
@@ -513,6 +514,32 @@ public static class ResponsiveLayout
         content.SuspendLayout();
         try
         {
+            // frmPhanQuyen có layout ngược: pnlTrai Left 300, pnlPhai Fill
+            bool isPhanQuyen = form.Name == "frmPhanQuyen";
+
+            if (isPhanQuyen)
+            {
+                if (wide)
+                {
+                    list.Dock = DockStyle.Left;
+                    list.Width = 300;
+                    detail.Dock = DockStyle.Fill;
+                    detail.Width = Math.Max(500, w - 300);
+                }
+                else
+                {
+                    list.Dock = DockStyle.Top;
+                    list.Width = Math.Max(320, w);
+                    list.Height = 260;
+                    detail.Dock = DockStyle.Top;
+                    detail.Width = Math.Max(320, w);
+                    detail.Height = 500;
+                    list.BringToFront();
+                }
+                FixPanelChiTiet(list);
+                return;
+            }
+
             if (wide)
             {
                 detail.Dock = DockStyle.Right;
@@ -522,7 +549,6 @@ public static class ResponsiveLayout
                 list.Width = Math.Max(500, w - detail.Width);
                 list.Height = Math.Max(list.Height, 420);
 
-                // Fix chi tiết
                 FixPanelChiTiet(detail);
             }
             else

@@ -44,6 +44,7 @@ public class VoucherService
 
             voucher.MaCode = voucher.MaCode.Trim().ToUpperInvariant();
             voucher.MaVoucher = _voucherRepo.Them(voucher);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "ThemVoucher", "VOUCHER", voucher.MaVoucher.ToString(), $"Thêm voucher {voucher.MaCode}"); } catch { }
             return KetQua<Voucher>.Tot(voucher, "Thêm voucher thành công.");
         }
         catch (Exception ex)
@@ -67,6 +68,7 @@ public class VoucherService
 
             voucher.MaCode = voucher.MaCode.Trim().ToUpperInvariant();
             _voucherRepo.CapNhat(voucher);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "SuaVoucher", "VOUCHER", voucher.MaVoucher.ToString(), $"Sửa voucher #{voucher.MaVoucher}"); } catch { }
             return KetQua.Tot("Cập nhật voucher thành công.");
         }
         catch (Exception ex)
@@ -83,6 +85,7 @@ public class VoucherService
                 return KetQua.Loi("Bạn không có quyền xóa voucher.");
 
             _voucherRepo.Xoa(maVoucher);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "XoaVoucher", "VOUCHER", maVoucher.ToString(), $"Xóa voucher #{maVoucher}"); } catch { }
             return KetQua.Tot("Xóa voucher thành công.");
         }
         catch (Exception ex)

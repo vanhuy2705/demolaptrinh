@@ -33,10 +33,12 @@ public class LoaiSanService
 
             loaiSan.TenLoaiSan = loaiSan.TenLoaiSan.Trim();
             loaiSan.MaLoaiSan = _loaiSanRepo.Them(loaiSan);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "ThemLoaiSan", "LOAI_SAN", loaiSan.MaLoaiSan.ToString(), $"Thêm loại sân {loaiSan.TenLoaiSan}"); } catch { }
             return KetQua<LoaiSan>.Tot(loaiSan, "Thêm loại sân thành công.");
         }
         catch (Exception ex)
         {
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "ThemLoaiSan", "LOAI_SAN", null, $"Lỗi thêm loại sân: {ex.Message}", KetQuaNhatKy.ThatBai); } catch { }
             return KetQua<LoaiSan>.Loi("Không thể thêm loại sân: " + ex.Message);
         }
     }
@@ -53,15 +55,16 @@ public class LoaiSanService
                 return KetQua.Loi("Tên loại sân đã tồn tại.");
 
             _loaiSanRepo.CapNhat(loaiSan);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "SuaLoaiSan", "LOAI_SAN", loaiSan.MaLoaiSan.ToString(), $"Sửa loại sân #{loaiSan.MaLoaiSan}"); } catch { }
             return KetQua.Tot("Cập nhật loại sân thành công.");
         }
         catch (Exception ex)
         {
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "SuaLoaiSan", "LOAI_SAN", loaiSan?.MaLoaiSan.ToString(), $"Lỗi sửa: {ex.Message}", KetQuaNhatKy.ThatBai); } catch { }
             return KetQua.Loi("Không thể cập nhật loại sân: " + ex.Message);
         }
     }
 
-    /// <summary>Không cho xóa loại sân đang được sân sử dụng.</summary>
     public KetQua Xoa(int maLoaiSan)
     {
         try
@@ -74,10 +77,12 @@ public class LoaiSanService
                 return KetQua.Loi($"Không thể xóa: đang có {soSan} sân thuộc loại này.");
 
             _loaiSanRepo.Xoa(maLoaiSan);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "XoaLoaiSan", "LOAI_SAN", maLoaiSan.ToString(), $"Xóa loại sân #{maLoaiSan}"); } catch { }
             return KetQua.Tot("Xóa loại sân thành công.");
         }
         catch (Exception ex)
         {
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "XoaLoaiSan", "LOAI_SAN", maLoaiSan.ToString(), $"Lỗi xóa: {ex.Message}", KetQuaNhatKy.ThatBai); } catch { }
             return KetQua.Loi("Không thể xóa loại sân: " + ex.Message);
         }
     }

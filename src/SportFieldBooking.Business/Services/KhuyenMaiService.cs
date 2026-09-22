@@ -43,6 +43,7 @@ public class KhuyenMaiService
                 return KetQua<KhuyenMai>.Loi("Tên chương trình khuyến mãi đã tồn tại.");
 
             khuyenMai.MaKM = _khuyenMaiRepo.Them(khuyenMai);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "ThemKhuyenMai", "KHUYEN_MAI", khuyenMai.MaKM.ToString(), $"Thêm KM {khuyenMai.TenKM}"); } catch { }
             return KetQua<KhuyenMai>.Tot(khuyenMai, "Thêm khuyến mãi thành công.");
         }
         catch (Exception ex)
@@ -65,6 +66,7 @@ public class KhuyenMaiService
                 return KetQua.Loi("Tên chương trình khuyến mãi đã tồn tại.");
 
             _khuyenMaiRepo.CapNhat(khuyenMai);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "SuaKhuyenMai", "KHUYEN_MAI", khuyenMai.MaKM.ToString(), $"Sửa KM #{khuyenMai.MaKM}"); } catch { }
             return KetQua.Tot("Cập nhật khuyến mãi thành công.");
         }
         catch (Exception ex)
@@ -81,6 +83,7 @@ public class KhuyenMaiService
                 return KetQua.Loi("Bạn không có quyền xóa khuyến mãi.");
 
             _khuyenMaiRepo.Xoa(maKM);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "XoaKhuyenMai", "KHUYEN_MAI", maKM.ToString(), $"Xóa KM #{maKM}"); } catch { }
             return KetQua.Tot("Xóa khuyến mãi thành công.");
         }
         catch (Exception ex)
