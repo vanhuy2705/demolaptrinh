@@ -11,20 +11,24 @@ public class DatSanService
     private readonly IDatSanRepository _datSanRepo;
     private readonly ISanRepository _sanRepo;
     private readonly IKhachHangRepository _khachHangRepo;
+    private readonly IThamSoRepository _thamSoRepo;
     private readonly TinhTienService _tinhTienService;
 
     public DatSanService()
         : this(new Data.Repositories.DatSanRepository(), new Data.Repositories.SanRepository(),
-               new Data.Repositories.KhachHangRepository(), new TinhTienService())
+               new Data.Repositories.KhachHangRepository(),
+               new Data.Repositories.ThamSoRepository(),
+               new TinhTienService())
     {
     }
 
     public DatSanService(IDatSanRepository datSanRepo, ISanRepository sanRepo,
-        IKhachHangRepository khachHangRepo, TinhTienService tinhTienService)
+        IKhachHangRepository khachHangRepo, IThamSoRepository thamSoRepo, TinhTienService tinhTienService)
     {
         _datSanRepo = datSanRepo;
         _sanRepo = sanRepo;
         _khachHangRepo = khachHangRepo;
+        _thamSoRepo = thamSoRepo;
         _tinhTienService = tinhTienService;
     }
 
@@ -52,6 +56,26 @@ public class DatSanService
         string chiTiet = string.Join("\n", danhSachTrung.Select(d =>
             $"   • {d.TenSan}: {d.GioBatDau:hh\\:mm} - {d.GioKetThuc:hh\\:mm} ({TrangThaiDatSan.TenHienThi(d.TrangThai)} - {d.TenKH})"));
         return $"Sân đã được đặt trong khoảng thời gian này:\n{chiTiet}\nVui lòng chọn khung giờ hoặc sân khác.";
+    }
+
+    private int LaySoNgayDatTruoc()
+    {
+        try
+        {
+            string gt = _thamSoRepo.GiaTri(ThamSoKeys.SoNgayDatTruoc, "30");
+            return int.TryParse(gt, out int n) && n > 0 ? n : 30;
+        }
+        catch { return 30; }
+    }
+
+    private int LayThoiGianHuyToiDaGio()
+    {
+        try
+        {
+            string gt = _thamSoRepo.GiaTri(ThamSoKeys.ThoiGianHuyToiDaGio, "24");
+            return int.TryParse(gt, out int h) && h >= 0 ? h : 24;
+        }
+        catch { return 24; }
     }
 
     public KetQua<DatSan> TaoDatSan(int maKH, int maSan, DateTime ngayDat, TimeSpan gioBatDau, TimeSpan gioKetThuc,
@@ -90,17 +114,10 @@ public class DatSanService
                 TrangThai = TrangThaiDatSan.DaDat,
                 GhiChu = ghiChu ?? "",
                 MaNguoiTao = PhienLamViec.MaTK,
-                // Giữ lại voucher đã kiểm tra hợp lệ. Trước đây thông tin này bị vứt bỏ:
-                // booking chỉ lưu giá gốc nên số tiền báo cho khách (đã giảm) khác số
-                // được lưu, và sang bước lập hóa đơn phải chọn lại voucher từ đầu.
                 MaVoucher = ketQuaTien.DuLieu.VoucherDuocDung?.MaVoucher,
                 MaVoucherCode = ketQuaTien.DuLieu.VoucherDuocDung?.MaCode ?? ""
             };
 
-            // CHỐNG ĐẶT TRÙNG ĐỒNG THỜI: kiểm tra lịch trống và ghi booking phải nằm trong
-            // CÙNG một giao dịch, trong đó câu kiểm tra khoá dải bản ghi (UPDLOCK+HOLDLOCK).
-            // Để rời nhau như trước thì hai người bấm "Đặt sân" cùng lúc đều thấy trống
-            // và cả hai cùng ghi thành công.
             KetQua<DatSan> ketQua = null;
             Data.Helpers.DbHelper.ChayGiaoDich(() =>
             {
@@ -109,17 +126,23 @@ public class DatSanService
                 if (trungKhoa.Count > 0)
                 {
                     ketQua = KetQua<DatSan>.Loi(TaoThongBaoTrungLich(trungKhoa));
-                    return;                 // không ghi gì; giao dịch commit rỗng, khoá được nhả
+                    return;
                 }
 
                 datSan.MaDat = _datSanRepo.Them(datSan);
                 ketQua = KetQua<DatSan>.Tot(datSan, $"Đặt sân thành công (mã #{datSan.MaDat}).");
             });
 
+            if (ketQua != null && ketQua.ThanhCong)
+            {
+                try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "ThemDatSan", "DAT_SAN", datSan.MaDat.ToString(), $"Đặt sân {san.TenSan} cho {khachHang.HoTen} ngày {ngayDat:dd/MM} {gioBatDau:hh\\:mm}-{gioKetThuc:hh\\:mm}"); } catch { }
+            }
+
             return ketQua ?? KetQua<DatSan>.Loi("Không thể đặt sân.");
         }
         catch (Exception ex)
         {
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "ThemDatSan", "DAT_SAN", null, $"Lỗi đặt sân: {ex.Message}", KetQuaNhatKy.ThatBai); } catch { }
             return KetQua<DatSan>.Loi("Không thể đặt sân: " + ex.Message);
         }
     }
@@ -155,13 +178,9 @@ public class DatSanService
             if (!ketQuaTien.ThanhCong) return KetQua<DatSan>.Loi(ketQuaTien.ThongBao);
 
             datSan.TienSan = ketQuaTien.DuLieu.TienGoc;
-
-            // Voucher: ưu tiên mã vừa nhập; không nhập thì GIỮ voucher đang lưu trên booking
-            // (màn hình chi tiết không có ô nhập voucher, không được làm khách mất ưu đãi).
             datSan.MaVoucher = ketQuaTien.DuLieu.VoucherDuocDung?.MaVoucher ?? datSan.MaVoucher ?? cu.MaVoucher;
             datSan.MaVoucherCode = ketQuaTien.DuLieu.VoucherDuocDung?.MaCode ?? datSan.MaVoucherCode ?? cu.MaVoucherCode;
 
-            // Giống lúc đặt mới: kiểm tra trùng + ghi trong một giao dịch có khoá.
             KetQua<DatSan> ketQua = null;
             Data.Helpers.DbHelper.ChayGiaoDich(() =>
             {
@@ -177,10 +196,16 @@ public class DatSanService
                 ketQua = KetQua<DatSan>.Tot(datSan, "Cập nhật booking thành công.");
             });
 
+            if (ketQua != null && ketQua.ThanhCong)
+            {
+                try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "SuaDatSan", "DAT_SAN", datSan.MaDat.ToString(), $"Sửa booking #{datSan.MaDat}"); } catch { }
+            }
+
             return ketQua ?? KetQua<DatSan>.Loi("Không thể cập nhật booking.");
         }
         catch (Exception ex)
         {
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "SuaDatSan", "DAT_SAN", datSan?.MaDat.ToString(), $"Lỗi sửa: {ex.Message}", KetQuaNhatKy.ThatBai); } catch { }
             return KetQua<DatSan>.Loi("Không thể cập nhật booking: " + ex.Message);
         }
     }
@@ -199,11 +224,26 @@ public class DatSanService
             if (PhienLamViec.LaKhachHang && PhienLamViec.MaKH != datSan.MaKH)
                 return KetQua.Loi("Bạn chỉ có thể hủy booking của chính mình.");
 
+            // Kiểm tra thời gian hủy tối đa (khách hàng)
+            if (PhienLamViec.LaKhachHang)
+            {
+                int gioToiDa = LayThoiGianHuyToiDaGio();
+                if (gioToiDa > 0)
+                {
+                    DateTime thoiGianBatDau = datSan.NgayDat.Date + datSan.GioBatDau;
+                    double gioConLai = (thoiGianBatDau - DateTime.Now).TotalHours;
+                    if (gioConLai < gioToiDa)
+                        return KetQua.Loi($"Bạn chỉ được hủy trước {gioToiDa} giờ so với giờ bắt đầu. Còn lại {Math.Max(0, (int)gioConLai)} giờ.");
+                }
+            }
+
             _datSanRepo.CapNhatTrangThai(maDat, TrangThaiDatSan.DaHuy);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "HuyDatSan", "DAT_SAN", maDat.ToString(), $"Hủy booking #{maDat}: {lyDo}"); } catch { }
             return KetQua.Tot("Đã hủy booking #" + maDat + ".");
         }
         catch (Exception ex)
         {
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "HuyDatSan", "DAT_SAN", maDat.ToString(), $"Lỗi hủy: {ex.Message}", KetQuaNhatKy.ThatBai); } catch { }
             return KetQua.Loi("Không thể hủy booking: " + ex.Message);
         }
     }
@@ -248,8 +288,27 @@ public class DatSanService
         {
             if (ngayDat.Date < DateTime.Now.Date)
                 return KetQua.Loi("Không thể đặt sân cho ngày đã qua.");
+
+            // Kiểm tra số ngày đặt trước tối đa
+            int soNgayToiDa = LaySoNgayDatTruoc();
+            if ((ngayDat.Date - DateTime.Today).TotalDays > soNgayToiDa)
+                return KetQua.Loi($"Chỉ được đặt trước tối đa {soNgayToiDa} ngày.");
+
             if (ngayDat.Date == DateTime.Now.Date && gioBatDau < DateTime.Now.TimeOfDay)
                 return KetQua.Loi("Giờ bắt đầu không được nằm trong quá khứ.");
+
+            // Kiểm tra giờ mở/đóng cửa
+            try
+            {
+                string gioMoStr = _thamSoRepo.GiaTri(ThamSoKeys.GioMoCua, "05:00");
+                string gioDongStr = _thamSoRepo.GiaTri(ThamSoKeys.GioDongCua, "23:00");
+                if (TimeSpan.TryParse(gioMoStr, out var gioMo) && TimeSpan.TryParse(gioDongStr, out var gioDong))
+                {
+                    if (gioBatDau < gioMo || gioKetThuc > gioDong)
+                        return KetQua.Loi($"Trung tâm chỉ mở cửa từ {gioMo:hh\\:mm} đến {gioDong:hh\\:mm}.");
+                }
+            }
+            catch { }
         }
         return KetQua.Tot();
     }

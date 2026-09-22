@@ -21,6 +21,7 @@ partial class frmAdminMain
         btnDangXuat = new SidebarButton();
         btnDoiMatKhau = new SidebarButton();
         pnlMenu = new Panel();
+        btnNhatKy = new SidebarButton();
         btnCauHinh = new SidebarButton();
         btnThongKe = new SidebarButton();
         btnNhanVien = new SidebarButton();
@@ -132,6 +133,7 @@ partial class frmAdminMain
 
         pnlMenu.AutoScroll = true;
         pnlMenu.BackColor = GiaoDien.ThanhBen;
+        pnlMenu.Controls.Add(btnNhatKy);
         pnlMenu.Controls.Add(btnCauHinh);
         pnlMenu.Controls.Add(btnThongKe);
         pnlMenu.Controls.Add(btnNhanVien);
@@ -269,6 +271,15 @@ partial class frmAdminMain
         btnCauHinh.Text = "Cấu hình";
         btnCauHinh.Click += NhanMenu;
 
+        btnNhatKy.Dock = DockStyle.Top;
+        btnNhatKy.Location = new System.Drawing.Point(12, 556);
+        btnNhatKy.Name = "btnNhatKy";
+        btnNhatKy.Size = new System.Drawing.Size(216, 42);
+        btnNhatKy.TabIndex = 13;
+        btnNhatKy.TenBieuTuong = "note";
+        btnNhatKy.Text = "Nhật ký hoạt động";
+        btnNhatKy.Click += NhanMenu;
+
         pnlTren.BackColor = GiaoDien.BeMat;
         pnlTren.Controls.Add(lblVaiTro);
         pnlTren.Controls.Add(lblTenNguoiDung);
@@ -371,6 +382,7 @@ partial class frmAdminMain
     private SidebarButton btnDangXuat;
     private SidebarButton btnDoiMatKhau;
     private Panel pnlMenu;
+    private SidebarButton btnNhatKy;
     private SidebarButton btnCauHinh;
     private SidebarButton btnThongKe;
     private SidebarButton btnNhanVien;

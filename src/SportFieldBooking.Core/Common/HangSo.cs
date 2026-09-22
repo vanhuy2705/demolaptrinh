@@ -78,11 +78,16 @@ public static class PhuongThucThanhToan
 {
     public const string TienMat = "TienMat";
     public const string ChuyenKhoan = "ChuyenKhoan";
+    public const string The = "The";
 
-    public static readonly string[] TatCa = { TienMat, ChuyenKhoan };
+    public static readonly string[] TatCa = { TienMat, ChuyenKhoan, The };
 
-    public static string TenHienThi(string phuongThuc) =>
-        phuongThuc == ChuyenKhoan ? "Chuyển khoản" : "Tiền mặt";
+    public static string TenHienThi(string phuongThuc) => phuongThuc switch
+    {
+        ChuyenKhoan => "Chuyển khoản",
+        The => "Thẻ",
+        _ => "Tiền mặt"
+    };
 }
 
 /// <summary>Loại giảm giá của voucher: theo phần trăm hoặc số tiền cố định.</summary>
@@ -153,6 +158,26 @@ public static class ThamSoKeys
     public const string DiaChi = "DiaChi";
     public const string DienThoai = "DienThoai";
     public const string LoiChaoHoaDon = "LoiChaoHoaDon";
+    public const string ThoiGianHuyToiDaGio = "ThoiGianHuyToiDaGio";
+    public const string SoNgayDatTruoc = "SoNgayDatTruoc";
+}
+
+/// <summary>Kết quả hành động ghi nhật ký.</summary>
+public static class KetQuaNhatKy
+{
+    public const string ThanhCong = "ThanhCong";
+    public const string ThatBai = "ThatBai";
+    public const string CanhBao = "CanhBao";
+
+    public static readonly string[] TatCa = { ThanhCong, ThatBai, CanhBao };
+
+    public static string TenHienThi(string ketQua) => ketQua switch
+    {
+        ThanhCong => "Thành công",
+        ThatBai => "Thất bại",
+        CanhBao => "Cảnh báo",
+        _ => ketQua ?? ""
+    };
 }
 
 /// <summary>
@@ -227,4 +252,7 @@ public static class MaQuyen
     public const string ThongKeToanBo = "THONGTKE_TOANBO";
     public const string ThongKeNghiepVu = "THONGTKE_NGHIEPVU";
     public const string ThongKeCaNhan = "THONGTKE_CANHAN";
+
+    public const string NhatKyXem = "NHATKY_XEM";
+    public const string NhatKyXoa = "NHATKY_XOA";
 }

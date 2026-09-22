@@ -380,8 +380,8 @@ partial class frmQuanLyNhanVien
         pnlNut.Controls.Add(btnXoa);
         pnlNut.Controls.Add(btnSua);
         pnlNut.Controls.Add(btnThem);
-        pnlNut.Dock = DockStyle.Bottom;
-        pnlNut.Location = new System.Drawing.Point(20, 412);
+        pnlNut.Dock = DockStyle.None;
+        pnlNut.Location = new System.Drawing.Point(20, 560);
         pnlNut.Name = "pnlNut";
         pnlNut.Size = new System.Drawing.Size(340, 180);
         pnlNut.TabIndex = 21;

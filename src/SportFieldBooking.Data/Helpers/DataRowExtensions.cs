@@ -36,4 +36,10 @@ public static class DataRowExtensions
 
     public static DateTime? NgayGioCoTheNull(this DataRow dong, string tenCot) =>
         dong.CoCot(tenCot) && dong[tenCot] != DBNull.Value ? Convert.ToDateTime(dong[tenCot]) : null;
+
+    public static long SoNguyen64(this DataRow dong, string tenCot) =>
+        dong.CoCot(tenCot) && dong[tenCot] != DBNull.Value ? Convert.ToInt64(dong[tenCot]) : 0L;
+
+    public static long? SoNguyen64CoTheNull(this DataRow dong, string tenCot) =>
+        dong.CoCot(tenCot) && dong[tenCot] != DBNull.Value ? Convert.ToInt64(dong[tenCot]) : null;
 }

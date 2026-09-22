@@ -330,7 +330,7 @@ partial class frmKhuyenMai
         pnlNut.Controls.Add(btnXoa);
         pnlNut.Controls.Add(btnSua);
         pnlNut.Controls.Add(btnThem);
-        pnlNut.Location = new System.Drawing.Point(20, 480);
+        pnlNut.Location = new System.Drawing.Point(20, 490);
         pnlNut.Name = "pnlNut";
         pnlNut.Size = new System.Drawing.Size(340, 116);
         pnlNut.TabIndex = 16;

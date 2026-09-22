@@ -68,8 +68,6 @@ public class HoaDonService
             if (hoaDonCu != null && hoaDonCu.TrangThai == TrangThaiHoaDon.DaThanhToan && !tinhLai)
                 return KetQua<HoaDon>.Tot(hoaDonCu, "Booking này đã có hóa đơn thanh toán.");
 
-            // Voucher của booking: người lập không nhập mã thì lấy mã đã lưu lúc đặt sân,
-            // khách không phải đọc lại mã và nhân viên không thể "quên" làm mất ưu đãi.
             string voucherTuBooking = null;
             if (string.IsNullOrWhiteSpace(maVoucher) && datSan.MaVoucher != null)
                 voucherTuBooking = _voucherRepo.LayTheoMa(datSan.MaVoucher.Value)?.MaCode;
@@ -77,8 +75,6 @@ public class HoaDonService
             KetQua<ChiTietTien> ketQuaTien = _tinhTienService.TinhTienChoBooking(datSan,
                 string.IsNullOrWhiteSpace(maVoucher) ? voucherTuBooking ?? "" : maVoucher);
 
-            // Voucher lưu trên booking có thể đã hết hạn/hết lượt vào lúc thu tiền:
-            // khi đó lập hóa đơn theo giá hiện hành chứ không chặn nghiệp vụ thu tiền.
             if (!ketQuaTien.ThanhCong && string.IsNullOrWhiteSpace(maVoucher) && voucherTuBooking != null)
                 ketQuaTien = _tinhTienService.TinhTienChoBooking(datSan, "");
 
@@ -94,6 +90,7 @@ public class HoaDonService
                 hoaDonCu.MaVoucher = tien.VoucherDuocDung?.MaVoucher;
                 hoaDonCu.PhuongThucThanhToan = phuongThuc;
                 _hoaDonRepo.CapNhat(hoaDonCu);
+                try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "SuaHoaDon", "HOA_DON", hoaDonCu.MaHD.ToString(), $"Cập nhật hóa đơn #{hoaDonCu.MaHD}"); } catch { }
                 return KetQua<HoaDon>.Tot(hoaDonCu, "Đã cập nhật lại hóa đơn.");
             }
 
@@ -113,10 +110,12 @@ public class HoaDonService
             };
 
             hoaDon.MaHD = _hoaDonRepo.Them(hoaDon);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "LapHoaDon", "HOA_DON", hoaDon.MaHD.ToString(), $"Lập hóa đơn #{hoaDon.MaHD} cho booking #{maDat}"); } catch { }
             return KetQua<HoaDon>.Tot(hoaDon, "Lập hóa đơn thành công.");
         }
         catch (Exception ex)
         {
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "LapHoaDon", "HOA_DON", maDat.ToString(), $"Lỗi lập HĐ: {ex.Message}", KetQuaNhatKy.ThatBai); } catch { }
             return KetQua<HoaDon>.Loi("Không thể lập hóa đơn: " + ex.Message);
         }
     }
@@ -131,7 +130,7 @@ public class HoaDonService
         {
             if (!PhanQuyenService.CoQuyen(MaQuyen.HdThanhToan))
                 return KetQua<HoaDon>.Loi("Bạn không có quyền thu tiền.");
-            if (phuongThuc != PhuongThucThanhToan.TienMat && phuongThuc != PhuongThucThanhToan.ChuyenKhoan)
+            if (!PhuongThucThanhToan.TatCa.Contains(phuongThuc))
                 return KetQua<HoaDon>.Loi("Phương thức thanh toán không hợp lệ.");
 
             HoaDon hoaDon = _hoaDonRepo.LayTheoMa(maHD);
@@ -146,7 +145,6 @@ public class HoaDonService
 
             DbHelper.ChayGiaoDich(() =>
             {
-                // Ghi nhận lượt sử dụng voucher (chỉ 1 lần cho mỗi booking).
                 if (hoaDon.MaVoucher != null)
                 {
                     Voucher voucher = _voucherRepo.LayTheoMa(hoaDon.MaVoucher.Value);
@@ -181,10 +179,13 @@ public class HoaDonService
                 _sanRepo.CapNhatTrangThai(datSan.MaSan, TrangThaiSan.Trong);
             });
 
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "ThanhToan", "HOA_DON", maHD.ToString(), $"Thanh toán HĐ #{maHD} {PhuongThucThanhToan.TenHienThi(phuongThuc)} - {hoaDon.TongTien:N0}đ"); } catch { }
+
             return KetQua<HoaDon>.Tot(hoaDon, $"Thanh toán hóa đơn #{hoaDon.MaHD} thành công.");
         }
         catch (Exception ex)
         {
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "ThanhToan", "HOA_DON", maHD.ToString(), $"Lỗi TT: {ex.Message}", KetQuaNhatKy.ThatBai); } catch { }
             return KetQua<HoaDon>.Loi("Không thể thanh toán: " + ex.Message);
         }
     }
@@ -216,10 +217,13 @@ public class HoaDonService
                 if (datSan != null) _datSanRepo.CapNhatTrangThai(hoaDon.MaDat, TrangThaiDatSan.DaHuy);
             });
 
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "HuyHoaDon", "HOA_DON", maHD.ToString(), $"Hủy HĐ #{maHD}: {lyDo}"); } catch { }
+
             return KetQua.Tot("Đã hủy hóa đơn #" + maHD + ".");
         }
         catch (Exception ex)
         {
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "HuyHoaDon", "HOA_DON", maHD.ToString(), $"Lỗi hủy: {ex.Message}", KetQuaNhatKy.ThatBai); } catch { }
             return KetQua.Loi("Không thể hủy hóa đơn: " + ex.Message);
         }
     }
@@ -237,6 +241,7 @@ public class HoaDonService
                 return KetQua.Loi("Không thể xóa hóa đơn đã thanh toán.");
 
             _hoaDonRepo.Xoa(maHD);
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "XoaHoaDon", "HOA_DON", maHD.ToString(), $"Xóa HĐ #{maHD}"); } catch { }
             return KetQua.Tot("Xóa hóa đơn thành công.");
         }
         catch (Exception ex)

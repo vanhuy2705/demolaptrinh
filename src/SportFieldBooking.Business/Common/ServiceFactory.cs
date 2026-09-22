@@ -21,4 +21,6 @@ public static class ServiceFactory
     public static CauHinhService CauHinh { get; } = new CauHinhService();
     public static ThongKeService ThongKe { get; } = new ThongKeService();
     public static TinhTienService TinhTien { get; } = new TinhTienService();
+    public static NhatKyService NhatKy { get; } = new NhatKyService();
+    public static QuyenService Quyen { get; } = new QuyenService();
 }

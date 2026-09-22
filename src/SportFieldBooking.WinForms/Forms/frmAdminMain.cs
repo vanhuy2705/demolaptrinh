@@ -99,13 +99,18 @@ public partial class frmAdminMain : BaseMainForm
                 tieuDe = "Cấu hình hệ thống";
                 formCon = new frmCauHinh();
                 break;
+            case nameof(btnNhatKy):
+                if (!DuocMo(MaQuyen.NhatKyXem, "nhật ký hoạt động")) return;
+                tieuDe = "Nhật ký hoạt động";
+                formCon = new frmNhatKyHoatDong();
+                break;
             default:
                 return;
         }
 
         DanhDauMenuDangChon(nutMenu, btnTongQuan, btnLoaiSan, btnSan, btnKhachHang, btnDatSan,
             btnLichDatSan, btnHoaDon, btnVoucher, btnKhuyenMai, btnTaiKhoan, btnNhanVien,
-            btnThongKe, btnCauHinh);
+            btnThongKe, btnCauHinh, btnNhatKy);
 
         lblTieuDeTrang.Text = tieuDe;
         Text = tieuDe + " - Quản lý cho thuê sân thể thao";

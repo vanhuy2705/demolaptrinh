@@ -40,13 +40,22 @@ public class AuthService
 
             TaiKhoan taiKhoan = _taiKhoanRepo.LayTheoTenDangNhap(tenDangNhap.Trim());
             if (taiKhoan == null)
+            {
+                try { ServiceFactory.NhatKy.Ghi(null, "DangNhap", "TAIKHOAN", tenDangNhap, $"Đăng nhập thất bại: sai tên đăng nhập {tenDangNhap}", KetQuaNhatKy.ThatBai); } catch { }
                 return KetQua<TaiKhoan>.Loi("Tên đăng nhập hoặc mật khẩu không đúng.");
+            }
 
             if (taiKhoan.TrangThai == TrangThaiTaiKhoan.BiKhoa)
+            {
+                try { ServiceFactory.NhatKy.Ghi(taiKhoan.MaTK, "DangNhap", "TAIKHOAN", taiKhoan.MaTK.ToString(), "Tài khoản bị khóa", KetQuaNhatKy.ThatBai); } catch { }
                 return KetQua<TaiKhoan>.Loi("Tài khoản của bạn đang bị khóa. Vui lòng liên hệ quản trị viên.");
+            }
 
             if (!PasswordHasher.KiemTra(matKhau, taiKhoan.MatKhau))
+            {
+                try { ServiceFactory.NhatKy.Ghi(taiKhoan.MaTK, "DangNhap", "TAIKHOAN", taiKhoan.MaTK.ToString(), "Sai mật khẩu", KetQuaNhatKy.ThatBai); } catch { }
                 return KetQua<TaiKhoan>.Loi("Tên đăng nhập hoặc mật khẩu không đúng.");
+            }
 
             // Nâng cấp mật khẩu đang lưu dạng thô (dữ liệu seed nhập tay) sang dạng băm.
             if (!PasswordHasher.LaMatKhauDaBam(taiKhoan.MatKhau))
@@ -60,6 +69,9 @@ public class AuthService
                 : null;
 
             PhienLamViec.DangNhap(taiKhoan, nhanVien?.MaNV, khachHang?.MaKH);
+
+            try { ServiceFactory.NhatKy.Ghi(taiKhoan.MaTK, "DangNhap", "TAIKHOAN", taiKhoan.MaTK.ToString(), $"Đăng nhập thành công: {taiKhoan.TenDangNhap} ({taiKhoan.VaiTro})", KetQuaNhatKy.ThanhCong); } catch { }
+
             return KetQua<TaiKhoan>.Tot(taiKhoan, $"Xin chào {taiKhoan.HoTen}!");
         }
         catch (Exception ex)
@@ -114,6 +126,8 @@ public class AuthService
                 khachHang.MaKH = _khachHangRepo.Them(khachHang);
             });
 
+            try { ServiceFactory.NhatKy.Ghi(taiKhoan.MaTK, "DangKy", "TAIKHOAN", taiKhoan.MaTK.ToString(), $"Đăng ký tài khoản mới: {taiKhoan.TenDangNhap}"); } catch { }
+
             return KetQua<TaiKhoan>.Tot(taiKhoan, "Đăng ký thành công, bạn có thể đăng nhập ngay.");
         }
         catch (Exception ex)
@@ -136,6 +150,7 @@ public class AuthService
                 return KetQua.Loi("Mật khẩu xác nhận không khớp.");
 
             _taiKhoanRepo.DoiMatKhau(maTK, PasswordHasher.MaHoa(matKhauMoi));
+            try { ServiceFactory.NhatKy.Ghi(maTK, "DoiMatKhau", "TAIKHOAN", maTK.ToString(), "Đổi mật khẩu"); } catch { }
             return KetQua.Tot("Đổi mật khẩu thành công.");
         }
         catch (Exception ex)
@@ -144,5 +159,9 @@ public class AuthService
         }
     }
 
-    public void DangXuat() => PhienLamViec.DangXuat();
+    public void DangXuat()
+    {
+        try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "DangXuat", "TAIKHOAN", PhienLamViec.MaTK.ToString(), "Đăng xuất"); } catch { }
+        PhienLamViec.DangXuat();
+    }
 }

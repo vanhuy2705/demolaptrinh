@@ -317,8 +317,8 @@ partial class frmSan
         pnlNut.Controls.Add(btnSua);
         pnlNut.Controls.Add(btnThem);
         pnlNut.Controls.Add(btnDoiTrangThai);
-        pnlNut.Dock = DockStyle.Bottom;
-        pnlNut.Location = new System.Drawing.Point(20, 440);
+        pnlNut.Dock = DockStyle.None;
+        pnlNut.Location = new System.Drawing.Point(20, 520);
         pnlNut.Name = "pnlNut";
         pnlNut.Size = new System.Drawing.Size(340, 152);
         pnlNut.TabIndex = 11;

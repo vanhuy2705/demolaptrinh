@@ -41,6 +41,18 @@ public class CauHinhService
 
     public TimeSpan LayGioDongCua() => LayGio(ThamSoKeys.GioDongCua, new TimeSpan(23, 0, 0));
 
+    public int LayThoiGianHuyToiDaGio()
+    {
+        string giaTri = _thamSoRepo.GiaTri(ThamSoKeys.ThoiGianHuyToiDaGio, "24");
+        return int.TryParse(giaTri, out int gio) && gio >= 0 ? gio : 24;
+    }
+
+    public int LaySoNgayDatTruoc()
+    {
+        string giaTri = _thamSoRepo.GiaTri(ThamSoKeys.SoNgayDatTruoc, "30");
+        return int.TryParse(giaTri, out int ngay) && ngay > 0 ? ngay : 30;
+    }
+
     public KetQua Luu(string tenThamSo, string giaTri)
     {
         try
@@ -54,6 +66,9 @@ public class CauHinhService
             int ketQua = _thamSoRepo.CapNhat(tenThamSo, giaTri);
             if (ketQua == 0)
                 _thamSoRepo.Them(new ThamSo { TenThamSo = tenThamSo, GiaTri = giaTri });
+
+            // Ghi nhật ký
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "SuaCauHinh", "THAM_SO", tenThamSo, $"Đổi {tenThamSo} = {giaTri}"); } catch { }
 
             return KetQua.Tot("Lưu cấu hình thành công.");
         }
@@ -81,6 +96,8 @@ public class CauHinhService
                         _thamSoRepo.Them(new ThamSo { TenThamSo = cap.Key, GiaTri = cap.Value });
                 }
             });
+
+            try { ServiceFactory.NhatKy.Ghi(PhienLamViec.MaTK, "SuaCauHinh", "THAM_SO", null, $"Lưu {danhSach.Count()} tham số"); } catch { }
 
             return KetQua.Tot("Lưu toàn bộ cấu hình thành công.");
         }
@@ -112,6 +129,18 @@ public class CauHinhService
         {
             if (!TimeSpan.TryParse(giaTri, out _))
                 return KetQua.Loi("Giờ mở/đóng cửa không đúng định dạng (vd: 05:00).");
+        }
+
+        if (tenThamSo == ThamSoKeys.ThoiGianHuyToiDaGio)
+        {
+            if (!int.TryParse(giaTri, out int gio) || gio < 0 || gio > 720)
+                return KetQua.Loi("Thời gian hủy tối đa phải là số giờ từ 0 đến 720.");
+        }
+
+        if (tenThamSo == ThamSoKeys.SoNgayDatTruoc)
+        {
+            if (!int.TryParse(giaTri, out int ngay) || ngay <= 0 || ngay > 365)
+                return KetQua.Loi("Số ngày đặt trước phải từ 1 đến 365 ngày.");
         }
 
         return KetQua.Tot();

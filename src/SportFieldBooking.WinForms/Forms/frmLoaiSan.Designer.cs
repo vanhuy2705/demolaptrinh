@@ -243,8 +243,8 @@ partial class frmLoaiSan
         pnlNut.Controls.Add(btnXoa);
         pnlNut.Controls.Add(btnSua);
         pnlNut.Controls.Add(btnThem);
-        pnlNut.Dock = DockStyle.Bottom;
-        pnlNut.Location = new System.Drawing.Point(20, 496);
+        pnlNut.Dock = DockStyle.None;
+        pnlNut.Location = new System.Drawing.Point(20, 260);
         pnlNut.Name = "pnlNut";
         pnlNut.Size = new System.Drawing.Size(340, 96);
         pnlNut.TabIndex = 6;

@@ -183,6 +183,7 @@ partial class frmVoucher
         dgvVoucher.SelectionChanged += dgvVoucher_SelectionChanged;
 
         pnlPhai.AutoScroll = true;
+        pnlPhai.AutoScrollMinSize = new System.Drawing.Size(0, 700);
         pnlPhai.BackColor = GiaoDien.BeMat;
         pnlPhai.Controls.Add(pnlNut);
         pnlPhai.Controls.Add(lblNhanMoTa);
